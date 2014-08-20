@@ -29,8 +29,8 @@ void
 log_template_append_format_recursive(LogTemplate *self, const LogTemplateInvokeArgs *args, GString *result)
 {
   log_template_append_format_with_context(self,
-                                          args->messages, args->num_messages,
-                                          args->opts, args->tz, args->seq_num, args->context_id, result);
+                                          args->super.messages, args->super.num_messages,
+                                          args->super.opts, args->super.tz, args->super.seq_num, args->super.context_id, result);
 }
 
 
@@ -87,7 +87,7 @@ tf_simple_func_call(LogTemplateFunction *self, gpointer s, const LogTemplateInvo
   TFSimpleFunc simple_func = (TFSimpleFunc) self->arg;
   TFSimpleFuncState *state = (TFSimpleFuncState *) s;
 
-  simple_func(args->messages[args->num_messages-1], state->argc, (GString **) args->bufs->pdata, result);
+  simple_func(args->super.messages[args->super.num_messages-1], state->argc, (GString **) args->bufs->pdata, result);
 }
 
 void

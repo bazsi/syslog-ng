@@ -221,10 +221,10 @@ tf_json_call(LogTemplateFunction *self, gpointer s,
   gboolean r = TRUE;
   gsize orig_size = result->len;
 
-  for (i = 0; i < args->num_messages; i++)
-    r &= tf_json_append(result, state->vp, args->messages[i], args->opts, args->seq_num, args->tz);
+  for (i = 0; i < args->super.num_messages; i++)
+    r &= tf_json_append(result, state->vp, args->super.messages[i], args->super.opts, args->super.seq_num, args->super.tz);
 
-  if (!r && (args->opts->on_error & ON_ERROR_DROP_MESSAGE))
+  if (!r && (args->super.opts->on_error & ON_ERROR_DROP_MESSAGE))
     g_string_set_size(result, orig_size);
 }
 

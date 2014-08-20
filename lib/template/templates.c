@@ -138,13 +138,15 @@ log_template_append_format_with_context(LogTemplate *self, LogMessage **messages
               {
                 LogTemplateInvokeArgs args =
                   {
-                    self->arg_bufs,
-                    e->msg_ref ? &messages[msg_ndx] : messages,
-                    e->msg_ref ? 1 : num_messages,
-                    opts,
-                    tz,
-                    seq_num,
-                    context_id
+                    .super = {
+                      .messages = e->msg_ref ? &messages[msg_ndx] : messages,
+                      .num_messages = e->msg_ref ? 1 : num_messages,
+                      .opts = opts,
+                      .tz = tz,
+                      .seq_num = seq_num,
+                      .context_id = context_id
+                    },
+                    .bufs = self->arg_bufs,
                   };
 
 

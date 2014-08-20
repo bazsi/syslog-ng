@@ -27,7 +27,7 @@
 
 #include "syslog-ng.h"
 #include "plugin-types.h"
-#include "common-template-typedefs.h"
+#include "template/eval.h"
 
 /* This structure contains the arguments for template-function
  * expansion. It is defined in a struct because otherwise a large
@@ -35,21 +35,11 @@
  * several times. */
 typedef struct _LogTemplateInvokeArgs
 {
+  LogTemplateEvalArgs super;
   /* scratch buffers, stores GString *, elements are managed by the
    * function, storage/free is performed by the core. Can be used to
    * avoid allocating GString buffers in the fast-path. */
-
   GPtrArray *bufs;
-
-  /* context in case of correllation */
-  LogMessage **messages;
-  gint num_messages;
-
-  /* options for recursive template evaluation, inherited from the parent */
-  const LogTemplateOptions *opts;
-  gint tz;
-  gint seq_num;
-  const gchar *context_id;
 } LogTemplateInvokeArgs;
 
 typedef struct _LogTemplateFunction LogTemplateFunction;

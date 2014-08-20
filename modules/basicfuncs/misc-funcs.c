@@ -32,7 +32,7 @@ static void
 tf_context_length_call(LogTemplateFunction *self, gpointer s,
                        const LogTemplateInvokeArgs *args, GString *result)
 {
-  g_string_append_printf(result, "%d", args->num_messages);
+  g_string_append_printf(result, "%d", args->super.num_messages);
 }
 
 static void
