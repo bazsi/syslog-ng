@@ -4,12 +4,12 @@
 #include "template/escaping.h"
 #include "cfg.h"
 
-
-void
-log_template_append_format_with_context(LogTemplate *self, LogMessage **messages, gint num_messages, const LogTemplateOptions *opts, gint tz, gint32 seq_num, const gchar *context_id, GString *result)
+static void
+_log_template_append_format_with_context(LogTemplate *self, const LogTemplateEvalArgs *args, GString *result)
 {
   GList *p;
   LogTemplateElem *e;
+  const LogTemplateOptions *opts = args->opts;
 
   if (!opts)
     opts = &self->cfg->template_options;
@@ -30,9 +30,9 @@ log_template_append_format_with_context(LogTemplate *self, LogMessage **messages
        *
        * msg_ref == 0 means that the user didn't specify msg_ref
        * msg_ref >= 1 means that the user supplied the given msg_ref, 1 is equal to @0 */
-      if (e->msg_ref > num_messages)
+      if (e->msg_ref > args->num_messages)
         continue;
-      msg_ndx = num_messages - e->msg_ref;
+      msg_ndx = args->num_messages - e->msg_ref;
 
       /* value and macro can't understand a context, assume that no msg_ref means @0 */
       if (e->msg_ref == 0)
@@ -45,7 +45,7 @@ log_template_append_format_with_context(LogTemplate *self, LogMessage **messages
             const gchar *value = NULL;
             gssize value_len = -1;
 
-            value = log_msg_get_value(messages[msg_ndx], e->value_handle, &value_len);
+            value = log_msg_get_value(args->messages[msg_ndx], e->value_handle, &value_len);
             if (value && value[0])
               result_append(result, value, value_len, self->escape);
             else if (e->default_value)
@@ -58,7 +58,7 @@ log_template_append_format_with_context(LogTemplate *self, LogMessage **messages
 
             if (e->macro)
               {
-                log_macro_expand(result, e->macro, self->escape, opts ? opts : &self->cfg->template_options, tz, seq_num, context_id, messages[msg_ndx]);
+                log_macro_expand(result, e->macro, self->escape, opts, args->tz, args->seq_num, args->context_id, args->messages[msg_ndx]);
                 if (len == result->len && e->default_value)
                   g_string_append(result, e->default_value);
               }
@@ -72,19 +72,15 @@ log_template_append_format_with_context(LogTemplate *self, LogMessage **messages
 
             if (1)
               {
-                LogTemplateInvokeArgs args =
+                LogTemplateInvokeArgs invoke_args =
                   {
-                    .super = {
-                      .messages = e->msg_ref ? &messages[msg_ndx] : messages,
-                      .num_messages = e->msg_ref ? 1 : num_messages,
-                      .opts = opts,
-                      .tz = tz,
-                      .seq_num = seq_num,
-                      .context_id = context_id
-                    },
+                    .super = *args,
                     .bufs = self->arg_bufs,
                   };
 
+                invoke_args.super.opts = opts;
+                invoke_args.super.messages = e->msg_ref ? &args->messages[msg_ndx] : args->messages;
+                invoke_args.super.num_messages = e->msg_ref ? 1 : args->num_messages;
 
                 /* if a function call is called with an msg_ref, we only
                  * pass that given logmsg to argument resolution, otherwise
@@ -92,14 +88,29 @@ log_template_append_format_with_context(LogTemplate *self, LogMessage **messages
                  * specify which message they want to resolve from
                  */
                 if (e->func.ops->eval)
-                  e->func.ops->eval(e->func.ops, e->func.state, &args);
-                e->func.ops->call(e->func.ops, e->func.state, &args, result);
+                  e->func.ops->eval(e->func.ops, e->func.state, &invoke_args);
+                e->func.ops->call(e->func.ops, e->func.state, &invoke_args, result);
               }
             g_static_mutex_unlock(&self->arg_lock);
             break;
           }
         }
     }
+}
+
+void
+log_template_append_format_with_context(LogTemplate *self, LogMessage **messages, gint num_messages, const LogTemplateOptions *opts, gint tz, gint32 seq_num, const gchar *context_id, GString *result)
+{
+  LogTemplateEvalArgs args =
+  {
+    .messages = messages,
+    .num_messages = num_messages,
+    .opts = opts,
+    .tz = tz,
+    .seq_num = seq_num,
+    .context_id = context_id
+  };
+  return _log_template_append_format_with_context(self, &args, result);
 }
 
 void
