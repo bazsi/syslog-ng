@@ -9,7 +9,8 @@ templateinclude_HEADERS = \
 	lib/template/compiler.h			\
 	lib/template/user-function.h		\
 	lib/template/escaping.h			\
-	lib/template/common-template-typedefs.h
+	lib/template/common-template-typedefs.h	\
+	lib/template/eval.h
 
 template_sources = \
 	lib/template/templates.c		\
@@ -18,6 +19,7 @@ template_sources = \
 	lib/template/repr.c			\
 	lib/template/compiler.c			\
 	lib/template/user-function.c		\
-	lib/template/escaping.c
+	lib/template/escaping.c			\
+	lib/template/eval.c
 
 include lib/template/tests/Makefile.am

@@ -25,15 +25,6 @@
 #include "template/simple-function.h"
 #include "template/templates.h"
 
-void
-log_template_append_format_recursive(LogTemplate *self, const LogTemplateInvokeArgs *args, GString *result)
-{
-  log_template_append_format_with_context(self,
-                                          args->super.messages, args->super.num_messages,
-                                          args->super.opts, args->super.tz, args->super.seq_num, args->super.context_id, result);
-}
-
-
 /* simple template functions which take templates as arguments */
 
 gboolean
@@ -77,7 +68,7 @@ tf_simple_func_eval(LogTemplateFunction *self, gpointer s, const LogTemplateInvo
       arg = (GString **) &g_ptr_array_index(args->bufs, i);
       g_string_truncate(*arg, 0);
 
-      log_template_append_format_recursive(state->argv[i], args, *arg);
+      log_template_append_format_recursive(state->argv[i], &args->super, *arg);
     }
 }
 

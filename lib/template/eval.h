@@ -43,4 +43,11 @@ typedef struct _LogTemplateEvalArgs
   const gchar *context_id;
 } LogTemplateEvalArgs;
 
+void log_template_format(LogTemplate *self, LogMessage *lm, const LogTemplateOptions *opts, gint tz, gint32 seq_num, const gchar *context_id, GString *result);
+void log_template_append_format(LogTemplate *self, LogMessage *lm, const LogTemplateOptions *opts, gint tz, gint32 seq_num, const gchar *context_id, GString *result);
+void log_template_append_format_with_context(LogTemplate *self, LogMessage **messages, gint num_messages, const LogTemplateOptions *opts, gint tz, gint32 seq_num, const gchar *context_id, GString *result);
+void log_template_format_with_context(LogTemplate *self, LogMessage **messages, gint num_messages, const LogTemplateOptions *opts, gint tz, gint32 seq_num, const gchar *context_id, GString *result);
+void log_template_append_format_recursive(LogTemplate *self, const LogTemplateEvalArgs *args, GString *result);
+
+
 #endif

@@ -26,6 +26,7 @@
 #define TEMPLATE_SIMPLE_FUNCTION_H_INCLUDED
 
 #include "template/function.h"
+#include "plugin-types.h"
 
 /* function pointers for template functions */
 
