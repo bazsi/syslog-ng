@@ -35,6 +35,13 @@
 typedef struct
 {
   LogThreadedDestWorker super;
+  riemann_client_t *client;
+
+  struct
+  {
+    riemann_event_t **list;
+    gint n;
+  } event;
 } RiemannDestWorker;
 
 typedef struct
@@ -68,13 +75,6 @@ typedef struct
     gchar *key;
   } tls;
 
-  riemann_client_t *client;
-
-  struct
-  {
-    riemann_event_t **list;
-    gint n;
-  } event;
 } RiemannDestDriver;
 
 static void
@@ -86,7 +86,7 @@ _set_timeout_on_connection(RiemannDestWorker *self)
   struct timeval timeout;
   if (owner->timeout >= 1)
     {
-      fd = riemann_client_get_fd(owner->client);
+      fd = riemann_client_get_fd(self->client);
       timeout.tv_sec = owner->timeout;
       timeout.tv_usec = 0;
       setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &timeout, sizeof (timeout));
@@ -100,12 +100,12 @@ riemann_dd_connect(LogThreadedDestWorker *s)
   RiemannDestWorker *self = (RiemannDestWorker *) s;
   RiemannDestDriver *owner = (RiemannDestDriver *) s->owner;
 
-  owner->client = riemann_client_create(owner->type, owner->server, owner->port,
+  self->client = riemann_client_create(owner->type, owner->server, owner->port,
                                         RIEMANN_CLIENT_OPTION_TLS_CA_FILE, owner->tls.cacert,
                                         RIEMANN_CLIENT_OPTION_TLS_CERT_FILE, owner->tls.cert,
                                         RIEMANN_CLIENT_OPTION_TLS_KEY_FILE, owner->tls.key,
                                         RIEMANN_CLIENT_OPTION_NONE);
-  if (!owner->client)
+  if (!self->client)
     {
       msg_error("riemann: error connecting to Riemann server",
                 evt_tag_str("server", owner->server),
@@ -124,7 +124,7 @@ riemann_dd_connect(LogThreadedDestWorker *s)
 static void
 riemann_dd_disconnect(LogThreadedDestWorker *s)
 {
-  RiemannDestDriver *self = (RiemannDestDriver *)s->owner;
+  RiemannDestWorker *self = (RiemannDestWorker *) s;
 
   riemann_client_disconnect(self->client);
   self->client = NULL;
@@ -281,10 +281,8 @@ riemann_add_ttl_to_event(RiemannDestWorker *self, riemann_event_t *event, LogMes
 static void
 _append_event(RiemannDestWorker *self, riemann_event_t *event)
 {
-  RiemannDestDriver *owner = (RiemannDestDriver *) self->super.owner;
-
-  owner->event.list[owner->event.n] = event;
-  owner->event.n++;
+  self->event.list[self->event.n] = event;
+  self->event.n++;
 }
 
 static gboolean
@@ -361,22 +359,23 @@ riemann_worker_insert_one(RiemannDestWorker *self, LogMessage *msg)
 static worker_insert_result_t
 riemann_worker_flush(LogThreadedDestWorker *s)
 {
-  RiemannDestDriver *owner = (RiemannDestDriver *) s->owner;
+  RiemannDestWorker *self = (RiemannDestWorker *) s;
+  RiemannDestDriver *owner = (RiemannDestDriver *) self->super.owner;
   riemann_message_t *message;
   int r;
 
-  if (owner->event.n == 0)
+  if (self->event.n == 0)
     return WORKER_INSERT_RESULT_SUCCESS;
 
   message = riemann_message_new();
 
-  riemann_message_set_events_n(message, owner->event.n, owner->event.list);
-  r = riemann_client_send_message_oneshot(owner->client, message);
+  riemann_message_set_events_n(message, self->event.n, self->event.list);
+  r = riemann_client_send_message_oneshot(self->client, message);
 
   msg_trace("riemann: flushing messages to Riemann server",
             evt_tag_str("server", owner->server),
             evt_tag_int("port", owner->port),
-            evt_tag_int("batch_size", owner->event.n),
+            evt_tag_int("batch_size", self->event.n),
             evt_tag_int("result", r),
             evt_tag_str("driver", owner->super.super.super.id),
             log_pipe_location_tag(&owner->super.super.super.super));
@@ -386,8 +385,8 @@ riemann_worker_flush(LogThreadedDestWorker *s)
    * whether the send succeeds or fails. So we need to reallocate it,
    * and save as many messages as possible.
    */
-  owner->event.n = 0;
-  owner->event.list = (riemann_event_t **)malloc(sizeof (riemann_event_t *) *
+  self->event.n = 0;
+  self->event.list = (riemann_event_t **)malloc (sizeof (riemann_event_t *) *
                                                  MAX(1, owner->super.flush_lines));
   if (r != 0)
     return WORKER_INSERT_RESULT_ERROR;
@@ -455,6 +454,14 @@ riemann_worker_insert(LogThreadedDestWorker *s, LogMessage *msg)
     return _insert_batch(self, msg);
 }
 
+static void
+riemann_dw_free(LogThreadedDestWorker *s)
+{
+  RiemannDestWorker *self = (RiemannDestWorker *) s;
+
+  riemann_client_free(self->client);
+}
+
 static LogThreadedDestWorker *
 riemann_dw_new(LogThreadedDestDriver *owner, gint worker_index)
 {
@@ -467,7 +474,10 @@ riemann_dw_new(LogThreadedDestDriver *owner, gint worker_index)
   self->super.connect = riemann_dd_connect;
   self->super.disconnect = riemann_dd_disconnect;
   self->super.insert = riemann_worker_insert;
+  self->super.free_fn = riemann_dw_free;
   self->super.flush = riemann_worker_flush;
+  self->event.list = (riemann_event_t **)malloc (sizeof (riemann_event_t *) *
+                                                 MAX(1, owner->flush_lines));
   return &self->super;
 }
 
@@ -718,8 +728,6 @@ riemann_dd_init(LogPipe *s)
 
   _value_pairs_always_exclude_properties(self);
 
-  self->event.list = (riemann_event_t **)malloc (sizeof (riemann_event_t *) *
-                                                 MAX(1,self->super.flush_lines));
 
   msg_verbose("Initializing Riemann destination",
               evt_tag_str("server", self->server),
@@ -742,7 +750,6 @@ riemann_dd_free(LogPipe *d)
 
   log_template_options_destroy(&self->template_options);
 
-  riemann_client_free(self->client);
 
   log_template_unref(self->fields.host);
   log_template_unref(self->fields.service);
