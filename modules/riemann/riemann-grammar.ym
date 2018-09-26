@@ -140,6 +140,10 @@ riemann_option
           {
             log_threaded_dest_driver_set_flush_lines(last_driver,  $3);
           }
+        | KW_FLUSH_TIMEOUT '(' nonnegative_integer ')'
+          {
+            log_threaded_dest_driver_set_flush_timeout(last_driver,  $3);
+          }
         | threaded_dest_driver_option
         | KW_TLS '(' riemann_tls_options ')'
         | { last_template_options = riemann_dd_get_template_options(last_driver); } template_option
