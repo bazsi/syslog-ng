@@ -6,6 +6,7 @@ libmongoc-dev
 librabbitmq-dev
 libsystemd-dev
 openjdk-8-jdk
+libriemann-client-dev
 
 # required for make
 
