@@ -41,3 +41,4 @@ target_include_directories (http PRIVATE ${Curl_INCLUDE_DIR})
 target_link_libraries(http PRIVATE syslog-ng ${Curl_LIBRARIES})
 
 install(TARGETS http LIBRARY DESTINATION lib/syslog-ng/)
+add_test_subdirectory(tests)
