@@ -26,6 +26,7 @@
 #define HTTP_WORKER_H_INCLUDED 1
 
 #include "logthrdestdrv.h"
+#include "http-loadbalancer.h"
 
 #define CURL_NO_OLDIES 1
 #include <curl/curl.h>
@@ -34,6 +35,7 @@
 typedef struct _HTTPDestinationWorker
 {
   LogThreadedDestWorker super;
+  HTTPLoadBalancerClient lbc;
   CURL *curl;
   GString *request_body;
   struct curl_slist *request_headers;

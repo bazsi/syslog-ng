@@ -183,7 +183,7 @@ _add_message_to_batch(HTTPDestinationWorker *self, LogMessage *msg)
 }
 
 static worker_insert_result_t
-_map_http_status_to_worker_status(HTTPDestinationWorker *self, glong http_code)
+_map_http_status_to_worker_status(HTTPDestinationWorker *self, const gchar *url, glong http_code)
 {
   HTTPDestinationDriver *owner = (HTTPDestinationDriver *) self->super.owner;
   worker_insert_result_t retval = WORKER_INSERT_RESULT_ERROR;
@@ -205,7 +205,7 @@ _map_http_status_to_worker_status(HTTPDestinationWorker *self, glong http_code)
     case 3:
       msg_notice("Server returned with a 3XX (redirect) status code, which was not handled by curl. "
                  "Either accept-redirect() is set to no, or this status code is unknown. Trying again",
-                 evt_tag_str("url", owner->url),
+                 evt_tag_str("url", url),
                  evt_tag_int("status_code", http_code),
                  evt_tag_str("driver", owner->super.super.super.id),
                  log_pipe_location_tag(&owner->super.super.super.super));
@@ -213,7 +213,7 @@ _map_http_status_to_worker_status(HTTPDestinationWorker *self, glong http_code)
     case 4:
       msg_notice("Server returned with a 4XX (client errors) status code, which means we are not "
                  "authorized or the URL is not found. Trying again",
-                 evt_tag_str("url", owner->url),
+                 evt_tag_str("url", url),
                  evt_tag_int("status_code", http_code),
                  evt_tag_str("driver", owner->super.super.super.id),
                  log_pipe_location_tag(&owner->super.super.super.super));
@@ -228,7 +228,7 @@ _map_http_status_to_worker_status(HTTPDestinationWorker *self, glong http_code)
       break;
     default:
       msg_error("Unknown HTTP response code",
-                evt_tag_str("url", owner->url),
+                evt_tag_str("url", url),
                 evt_tag_int("status_code", http_code),
                 evt_tag_str("driver", owner->super.super.super.id),
                 log_pipe_location_tag(&owner->super.super.super.super));
@@ -267,6 +267,7 @@ _flush(LogThreadedDestWorker *s)
 {
   HTTPDestinationWorker *self = (HTTPDestinationWorker *) s;
   HTTPDestinationDriver *owner = (HTTPDestinationDriver *) s->owner;
+  HTTPLoadBalancerTarget *target;
   CURLcode ret;
   worker_insert_result_t retval;
 
@@ -275,12 +276,18 @@ _flush(LogThreadedDestWorker *s)
 
   _finish_request_body(self);
 
+  target = http_load_balancer_choose_target(owner->load_balancer, &self->lbc);
+
+  msg_trace("Sending HTTP request",
+            evt_tag_str("url", target->url));
+  curl_easy_setopt(self->curl, CURLOPT_URL, target->url);
   curl_easy_setopt(self->curl, CURLOPT_HTTPHEADER, self->request_headers);
   curl_easy_setopt(self->curl, CURLOPT_POSTFIELDS, self->request_body->str);
 
   if ((ret = curl_easy_perform(self->curl)) != CURLE_OK)
     {
       msg_error("curl: error sending HTTP request",
+                evt_tag_str("url", target->url),
                 evt_tag_str("error", curl_easy_strerror(ret)),
                 evt_tag_int("worker_index", self->super.worker_index),
                 evt_tag_str("driver", owner->super.super.super.id),
@@ -295,6 +302,7 @@ _flush(LogThreadedDestWorker *s)
   if (code != CURLE_OK)
     {
       msg_error("curl: error querying response code",
+                evt_tag_str("url", target->url),
                 evt_tag_str("error", curl_easy_strerror(ret)),
                 evt_tag_int("worker_index", self->super.worker_index),
                 evt_tag_str("driver", owner->super.super.super.id),
@@ -310,8 +318,8 @@ _flush(LogThreadedDestWorker *s)
 
       curl_easy_getinfo(self->curl, CURLINFO_TOTAL_TIME, &total_time);
       curl_easy_getinfo(self->curl, CURLINFO_REDIRECT_COUNT, &redirect_count);
-      msg_debug("curl: HTTP request completed",
-                evt_tag_str("url", owner->url),
+      msg_debug("curl: HTTP response received",
+                evt_tag_str("url", target->url),
                 evt_tag_int("status_code", http_code),
                 evt_tag_int("body_size", self->request_body->len),
                 evt_tag_int("batch_size", self->super.batch_size),
@@ -321,9 +329,14 @@ _flush(LogThreadedDestWorker *s)
                 evt_tag_str("driver", owner->super.super.super.id),
                 log_pipe_location_tag(&owner->super.super.super.super));
     }
-  retval = _map_http_status_to_worker_status(self, http_code);
+  retval = _map_http_status_to_worker_status(self, target->url, http_code);
 
 exit:
+  if (retval == WORKER_INSERT_RESULT_SUCCESS)
+    http_load_balancer_set_target_successful(owner->load_balancer, target);
+  else
+    http_load_balancer_set_target_failed(owner->load_balancer, target);
+
   _reinit_request_body(self);
   curl_slist_free_all(self->request_headers);
   self->request_headers = NULL;
@@ -397,6 +410,15 @@ _thread_deinit(LogThreadedDestWorker *s)
   log_threaded_dest_worker_deinit_method(s);
 }
 
+static void
+http_dw_free(LogThreadedDestWorker *s)
+{
+  HTTPDestinationWorker *self = (HTTPDestinationWorker *) s;
+
+  http_lb_client_deinit(&self->lbc);
+  log_threaded_dest_worker_free_method(s);
+}
+
 LogThreadedDestWorker *
 http_dw_new(LogThreadedDestDriver *o, gint worker_index)
 {
@@ -407,10 +429,13 @@ http_dw_new(LogThreadedDestDriver *o, gint worker_index)
   self->super.thread_init = _thread_init;
   self->super.thread_deinit = _thread_deinit;
   self->super.flush = _flush;
+  self->super.free_fn = http_dw_free;
 
   if (owner->super.flush_lines > 0 || owner->flush_bytes > 0)
     self->super.insert = _insert_batched;
   else
     self->super.insert = _insert_single;
+
+  http_lb_client_init(&self->lbc, owner->load_balancer);
   return &self->super;
 }
