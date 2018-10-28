@@ -27,7 +27,6 @@
 
 #include "syslog-ng.h"
 #include "template/templates.h"
-#include "cfg-lexer.h"
 #include "messages.h"
 #include "atomic.h"
 
@@ -120,8 +119,7 @@ struct _LogExprNode
   /* used during construction in case a rule specific object needs to be created. */
   gpointer aux;
   GDestroyNotify aux_destroy;
-  gchar *filename;
-  gint line, column;
+  gchar *location;
   gint child_id;
 };
 
@@ -133,29 +131,29 @@ const gchar *log_expr_node_format_location(LogExprNode *self, gchar *buf, gsize 
 EVTTAG *log_expr_node_location_tag(LogExprNode *self);
 
 LogExprNode *log_expr_node_new(gint layout, gint content, const gchar *name, LogExprNode *children, guint32 flags,
-                               YYLTYPE *yylloc);
+                               const gchar *yylloc);
 
 LogExprNode *log_expr_node_ref(LogExprNode *self);
 LogExprNode *log_expr_node_unref(LogExprNode *self);
 
-LogExprNode *log_expr_node_new_pipe(LogPipe *pipe, YYLTYPE *yylloc);
-LogExprNode *log_expr_node_new_source(const gchar *name, LogExprNode *children, YYLTYPE *yylloc);
-LogExprNode *log_expr_node_new_source_reference(const gchar *name, YYLTYPE *yylloc);
-LogExprNode *log_expr_node_new_destination(const gchar *name, LogExprNode *children, YYLTYPE *yylloc);
-LogExprNode *log_expr_node_new_destination_reference(const gchar *name, YYLTYPE *yylloc);
-LogExprNode *log_expr_node_new_filter(const gchar *name, LogExprNode *node, YYLTYPE *yylloc);
-LogExprNode *log_expr_node_new_filter_reference(const gchar *name, YYLTYPE *yylloc);
-LogExprNode *log_expr_node_new_parser(const gchar *name, LogExprNode *children, YYLTYPE *yylloc);
-LogExprNode *log_expr_node_new_parser_reference(const gchar *name, YYLTYPE *yylloc);
-LogExprNode *log_expr_node_new_rewrite(const gchar *name, LogExprNode *children, YYLTYPE *yylloc);
-LogExprNode *log_expr_node_new_rewrite_reference(const gchar *name, YYLTYPE *yylloc);
-LogExprNode *log_expr_node_new_log(LogExprNode *children, guint32 flags, YYLTYPE *yylloc);
-LogExprNode *log_expr_node_new_sequence(LogExprNode *children, YYLTYPE *yylloc);
-LogExprNode *log_expr_node_new_junction(LogExprNode *children, YYLTYPE *yylloc);
+LogExprNode *log_expr_node_new_pipe(LogPipe *pipe, const gchar *yylloc);
+LogExprNode *log_expr_node_new_source(const gchar *name, LogExprNode *children, const gchar *yylloc);
+LogExprNode *log_expr_node_new_source_reference(const gchar *name, const gchar *yylloc);
+LogExprNode *log_expr_node_new_destination(const gchar *name, LogExprNode *children, const gchar *yylloc);
+LogExprNode *log_expr_node_new_destination_reference(const gchar *name, const gchar *yylloc);
+LogExprNode *log_expr_node_new_filter(const gchar *name, LogExprNode *node, const gchar *yylloc);
+LogExprNode *log_expr_node_new_filter_reference(const gchar *name, const gchar *yylloc);
+LogExprNode *log_expr_node_new_parser(const gchar *name, LogExprNode *children, const gchar *yylloc);
+LogExprNode *log_expr_node_new_parser_reference(const gchar *name, const gchar *yylloc);
+LogExprNode *log_expr_node_new_rewrite(const gchar *name, LogExprNode *children, const gchar *yylloc);
+LogExprNode *log_expr_node_new_rewrite_reference(const gchar *name, const gchar *yylloc);
+LogExprNode *log_expr_node_new_log(LogExprNode *children, guint32 flags, const gchar *yylloc);
+LogExprNode *log_expr_node_new_sequence(LogExprNode *children, const gchar *yylloc);
+LogExprNode *log_expr_node_new_junction(LogExprNode *children, const gchar *yylloc);
 void log_expr_node_conditional_set_false_branch_of_the_last_if(LogExprNode *conditional_node, LogExprNode *false_expr);
 LogExprNode *log_expr_node_new_conditional_with_filter(LogExprNode *filter_pipe, LogExprNode *true_expr,
-                                                       YYLTYPE *yylloc);
-LogExprNode *log_expr_node_new_conditional_with_block(LogExprNode *block, YYLTYPE *yylloc);
+                                                       const gchar *yylloc);
+LogExprNode *log_expr_node_new_conditional_with_block(LogExprNode *block, const gchar *yylloc);
 
 typedef struct _CfgTree
 {

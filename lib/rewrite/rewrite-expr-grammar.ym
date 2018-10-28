@@ -78,7 +78,7 @@ start
 	;
 
 rewrite_expr_list
-        : rewrite_expr semicolons rewrite_expr_list  { $$ = log_expr_node_append_tail(log_expr_node_new_pipe($1, &@1), $3); }
+        : rewrite_expr semicolons rewrite_expr_list  { $$ = log_expr_node_append_tail(log_expr_node_new_pipe($1, _current_location(lexer, &@1)), $3); }
         | log_junction semicolons rewrite_expr_list      { $$ = log_expr_node_append_tail($1,  $3); }
         |                                           { $$ = NULL; }
         ;

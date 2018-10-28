@@ -95,6 +95,8 @@ _display_source_line(LogExprNode *expr_node)
   gint lineno = 1;
   gchar buf[1024];
 
+  return;
+#if 0
   if (!expr_node || !expr_node->filename)
     return;
 
@@ -115,6 +117,7 @@ _display_source_line(LogExprNode *expr_node)
   if (buf[0] == 0 || buf[strlen(buf) - 1] != '\n')
     putc('\n', stdout);
   fflush(stdout);
+#endif
 }
 
 

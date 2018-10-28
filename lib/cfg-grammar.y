@@ -65,6 +65,15 @@ extern struct _LogMatcherOptions *last_matcher_options;
 extern struct _HostResolveOptions *last_host_resolve_options;
 extern struct _StatsOptions *last_stats_options;
 
+static inline const gchar *
+_current_location(CfgLexer *lexer, YYLTYPE *yylloc)
+{
+  static gchar buf[1024];
+
+  cfg_lexer_format_location(lexer, yylloc, buf, sizeof(buf));
+  return buf;
+}
+
 }
 
 %name-prefix "main_"
@@ -501,14 +510,14 @@ expr_stmt
 source_stmt
         : KW_SOURCE string '{' source_content '}'
           {
-            $$ = log_expr_node_new_source($2, $4, &@1);
+            $$ = log_expr_node_new_source($2, $4, _current_location(lexer, &@1));
             free($2);
           }
 	;
 dest_stmt
        : KW_DESTINATION string '{' dest_content '}'
           {
-            $$ = log_expr_node_new_destination($2, $4, &@1);
+            $$ = log_expr_node_new_destination($2, $4, _current_location(lexer, &@1));
             free($2);
           }
 	;
@@ -526,7 +535,7 @@ filter_stmt
              * well.
              */
 
-            $$ = log_expr_node_new_filter($2, $4, &@1);
+            $$ = log_expr_node_new_filter($2, $4, _current_location(lexer, &@1));
             free($2);
           }
         ;
@@ -534,7 +543,7 @@ filter_stmt
 parser_stmt
         : KW_PARSER string '{' parser_content '}'
           {
-            $$ = log_expr_node_new_parser($2, $4, &@1);
+            $$ = log_expr_node_new_parser($2, $4, _current_location(lexer, &@1));
             free($2);
           }
         ;
@@ -542,7 +551,7 @@ parser_stmt
 rewrite_stmt
         : KW_REWRITE string '{' rewrite_content '}'
           {
-            $$ = log_expr_node_new_rewrite($2, $4, &@1);
+            $$ = log_expr_node_new_rewrite($2, $4, _current_location(lexer, &@1));
             free($2);
           }
 
@@ -583,12 +592,12 @@ source_content
           source_items
           { cfg_lexer_pop_context(lexer); }
           {
-            $$ = log_expr_node_new_junction($2, &@$);
+            $$ = log_expr_node_new_junction($2, _current_location(lexer, &@$));
           }
         ;
 
 source_items
-        : source_item semicolons source_items	{ $$ = log_expr_node_append_tail(log_expr_node_new_pipe($1, &@1), $3); }
+        : source_item semicolons source_items	{ $$ = log_expr_node_append_tail(log_expr_node_new_pipe($1, _current_location(lexer, &@1)), $3); }
         | log_fork semicolons source_items      { $$ = log_expr_node_append_tail($1,  $3); }
 	|					{ $$ = NULL; }
 	;
@@ -645,7 +654,7 @@ filter_content
 
 	    CHECK_ERROR_WITHOUT_MESSAGE(cfg_parser_parse(&filter_expr_parser, lexer, (gpointer *) &last_filter_expr, NULL), @$);
 
-            $$ = log_expr_node_new_pipe(log_filter_pipe_new(last_filter_expr, configuration), &@$);
+            $$ = log_expr_node_new_pipe(log_filter_pipe_new(last_filter_expr, configuration), _current_location(lexer, &@$));
 	  }
 	;
 
@@ -674,14 +683,14 @@ dest_content
             dest_items
            { cfg_lexer_pop_context(lexer); }
            {
-             $$ = log_expr_node_new_junction($2, &@$);
+             $$ = log_expr_node_new_junction($2, _current_location(lexer, &@$));
            }
          ;
 
 
 dest_items
         /* all destination drivers are added as an independent branch in a junction*/
-        : dest_item semicolons dest_items	{ $$ = log_expr_node_append_tail(log_expr_node_new_pipe($1, &@1), $3); }
+        : dest_item semicolons dest_items	{ $$ = log_expr_node_append_tail(log_expr_node_new_pipe($1, _current_location(lexer, &@1)), $3); }
         | log_fork semicolons dest_items        { $$ = log_expr_node_append_tail($1,  $3); }
 	|					{ $$ = NULL; }
 	;
@@ -715,22 +724,22 @@ log_items
 	;
 
 log_item
-        : KW_SOURCE '(' string ')'		{ $$ = log_expr_node_new_source_reference($3, &@$); free($3); }
-        | KW_SOURCE '{' source_content '}'      { $$ = log_expr_node_new_source(NULL, $3, &@$); }
-        | KW_FILTER '(' string ')'		{ $$ = log_expr_node_new_filter_reference($3, &@$); free($3); }
-        | KW_FILTER '{' filter_content '}'      { $$ = log_expr_node_new_filter(NULL, $3, &@$); }
-        | KW_PARSER '(' string ')'              { $$ = log_expr_node_new_parser_reference($3, &@$); free($3); }
-        | KW_PARSER '{' parser_content '}'      { $$ = log_expr_node_new_parser(NULL, $3, &@$); }
-        | KW_REWRITE '(' string ')'             { $$ = log_expr_node_new_rewrite_reference($3, &@$); free($3); }
-        | KW_REWRITE '{' rewrite_content '}'    { $$ = log_expr_node_new_rewrite(NULL, $3, &@$); }
-        | KW_DESTINATION '(' string ')'		{ $$ = log_expr_node_new_destination_reference($3, &@$); free($3); }
-        | KW_DESTINATION '{' dest_content '}'   { $$ = log_expr_node_new_destination(NULL, $3, &@$); }
+        : KW_SOURCE '(' string ')'		{ $$ = log_expr_node_new_source_reference($3, _current_location(lexer, &@$)); free($3); }
+        | KW_SOURCE '{' source_content '}'      { $$ = log_expr_node_new_source(NULL, $3, _current_location(lexer, &@$)); }
+        | KW_FILTER '(' string ')'		{ $$ = log_expr_node_new_filter_reference($3, _current_location(lexer, &@$)); free($3); }
+        | KW_FILTER '{' filter_content '}'      { $$ = log_expr_node_new_filter(NULL, $3, _current_location(lexer, &@$)); }
+        | KW_PARSER '(' string ')'              { $$ = log_expr_node_new_parser_reference($3, _current_location(lexer, &@$)); free($3); }
+        | KW_PARSER '{' parser_content '}'      { $$ = log_expr_node_new_parser(NULL, $3, _current_location(lexer, &@$)); }
+        | KW_REWRITE '(' string ')'             { $$ = log_expr_node_new_rewrite_reference($3, _current_location(lexer, &@$)); free($3); }
+        | KW_REWRITE '{' rewrite_content '}'    { $$ = log_expr_node_new_rewrite(NULL, $3, _current_location(lexer, &@$)); }
+        | KW_DESTINATION '(' string ')'		{ $$ = log_expr_node_new_destination_reference($3, _current_location(lexer, &@$)); free($3); }
+        | KW_DESTINATION '{' dest_content '}'   { $$ = log_expr_node_new_destination(NULL, $3, _current_location(lexer, &@$)); }
         | log_conditional			{ $$ = $1; }
         | log_junction                          { $$ = $1; }
 	;
 
 log_junction
-        : KW_JUNCTION '{' log_forks '}'         { $$ = log_expr_node_new_junction($3, &@$); }
+        : KW_JUNCTION '{' log_forks '}'         { $$ = log_expr_node_new_junction($3, _current_location(lexer, &@$)); }
         ;
 
 log_last_junction
@@ -742,7 +751,7 @@ log_last_junction
          *
          * We emulate if the user was writing junction {} explicitly.
          */
-        : log_forks                             { $$ = $1 ? log_expr_node_new_junction($1, &@1) :  NULL; }
+        : log_forks                             { $$ = $1 ? log_expr_node_new_junction($1, _current_location(lexer, &@1)) :  NULL; }
         ;
 
 
@@ -768,17 +777,17 @@ log_conditional
 log_if
         : KW_IF '(' filter_content ')' '{' log_content '}'
           {
-            $$ = log_expr_node_new_conditional_with_filter($3, $6, &@$);
+            $$ = log_expr_node_new_conditional_with_filter($3, $6, _current_location(lexer, &@$));
           }
         | KW_IF '{' log_content '}'
           {
-            $$ = log_expr_node_new_conditional_with_block($3, &@$);
+            $$ = log_expr_node_new_conditional_with_block($3, _current_location(lexer, &@$));
           }
         | log_if KW_ELIF '(' filter_content ')' '{' log_content '}'
           {
             LogExprNode *false_branch;
 
-            false_branch = log_expr_node_new_conditional_with_filter($4, $7, &@$);
+            false_branch = log_expr_node_new_conditional_with_filter($4, $7, _current_location(lexer, &@$));
             log_expr_node_conditional_set_false_branch_of_the_last_if($1, false_branch);
             $$ = $1;
           }
@@ -786,14 +795,14 @@ log_if
           {
             LogExprNode *false_branch;
 
-            false_branch = log_expr_node_new_conditional_with_block($4, &@$);
+            false_branch = log_expr_node_new_conditional_with_block($4, _current_location(lexer, &@$));
             log_expr_node_conditional_set_false_branch_of_the_last_if($1, false_branch);
             $$ = $1;
           }
         ;
 
 log_content
-        : log_items log_last_junction log_flags                { $$ = log_expr_node_new_log(log_expr_node_append_tail($1, $2), $3, &@$); }
+        : log_items log_last_junction log_flags                { $$ = log_expr_node_new_log(log_expr_node_append_tail($1, $2), $3, _current_location(lexer, &@$)); }
         ;
 
 log_flags
