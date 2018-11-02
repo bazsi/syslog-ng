@@ -40,6 +40,7 @@ struct _LogParser
   LogTemplate *template;
   gboolean (*process)(LogParser *s, LogMessage **pmsg, const LogPathOptions *path_options, const gchar *input,
                       gsize input_len);
+  StatsCounterItem *discarded_messages;
   gchar *name;
 };
 

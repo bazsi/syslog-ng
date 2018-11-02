@@ -224,7 +224,6 @@ struct _LogPipe
   GlobalConfig *cfg;
   LogExprNode *expr_node;
   LogPipe *pipe_next;
-  StatsCounterItem *discarded_messages;
   const gchar *persist_name;
   gchar *plugin_name;
 
@@ -382,7 +381,7 @@ log_pipe_enumerate(LogPipe *self, LogPipeEnumerateFunc callback, gpointer user_d
 
   if (self->enumerate)
     self->enumerate(self, callback, user_data);
-  log_pipe_enumerate(self->next, callback, user_data);
+  log_pipe_enumerate(self->pipe_next, callback, user_data);
 }
 
 static inline LogPipe *
