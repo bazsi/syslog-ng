@@ -130,6 +130,19 @@ log_multiplexer_queue(LogPipe *s, LogMessage *msg, const LogPathOptions *path_op
 }
 
 static void
+log_multiplexer_enumerate(LogPipe *s, LogPipeEnumerateFunc callback, gpointer user_data)
+{
+  LogMultiplexer *self = (LogMultiplexer *) s;
+
+  for (gint i = 0; i < self->next_hops->len; i++)
+    {
+      LogPipe *branch_head = g_ptr_array_index(self->next_hops, i);
+
+      log_pipe_enumerate(branch_head, callback, user_data);
+    }
+}
+
+static void
 log_multiplexer_free(LogPipe *s)
 {
   LogMultiplexer *self = (LogMultiplexer *) s;
@@ -147,6 +160,7 @@ log_multiplexer_new(GlobalConfig *cfg)
   self->super.init = log_multiplexer_init;
   self->super.deinit = log_multiplexer_deinit;
   self->super.queue = log_multiplexer_queue;
+  self->super.enumerate = log_multiplexer_enumerate;
   self->super.free_fn = log_multiplexer_free;
   self->next_hops = g_ptr_array_new();
   return self;

@@ -212,6 +212,8 @@ struct _LogPathOptions
 #define LOG_PATH_OPTIONS_INIT { TRUE, FALSE, NULL }
 #define LOG_PATH_OPTIONS_INIT_NOACK { FALSE, FALSE, NULL }
 
+typedef void (*LogPipeEnumerateFunc)(LogPipe *pipe, gpointer user_data);
+
 struct _LogPipe
 {
   GAtomicCounter ref_cnt;
@@ -230,6 +232,7 @@ struct _LogPipe
   gboolean (*init)(LogPipe *self);
   gboolean (*deinit)(LogPipe *self);
   void (*post_deinit)(LogPipe *self);
+  void (*enumerate)(LogPipe *self, LogPipeEnumerateFunc callback, gpointer user_data);
 
   const gchar *(*generate_persist_name)(const LogPipe *self);
 
@@ -370,6 +373,16 @@ log_pipe_queue(LogPipe *s, LogMessage *msg, const LogPathOptions *path_options)
     {
       (*path_options->matched) = TRUE;
     }
+}
+
+static inline void
+log_pipe_enumerate(LogPipe *self, LogPipeEnumerateFunc callback, gpointer user_data)
+{
+  callback(self, user_data);
+
+  if (self->enumerate)
+    self->enumerate(self, callback, user_data);
+  log_pipe_enumerate(self->next, callback, user_data);
 }
 
 static inline LogPipe *
