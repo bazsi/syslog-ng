@@ -46,6 +46,7 @@ typedef struct
 {
   gboolean forward_invalid;
   gboolean strip_whitespaces;
+  gchar *text_separator;
   GList *exclude_tags;
 } XMLParserTestOptions;
 
@@ -58,7 +59,8 @@ _construct_xml_parser(XMLParserTestOptions options)
     xml_scanner_options_set_strip_whitespaces(xml_parser_get_scanner_options(xml_parser), options.strip_whitespaces);
   if (options.exclude_tags)
     xml_scanner_options_set_and_compile_exclude_tags(xml_parser_get_scanner_options(xml_parser), options.exclude_tags);
-
+  if (options.text_separator)
+    xml_parser_set_text_separator(xml_parser, options.text_separator);
 
   LogPipe *cloned = xml_parser_clone(&xml_parser->super);
   log_pipe_init(cloned);
@@ -153,6 +155,54 @@ ParameterizedTest(ValidXMLTestCase *test_cases, xmlparser, valid_inputs)
   log_pipe_unref((LogPipe *)xml_parser);
   log_msg_unref(msg);
 }
+
+typedef struct
+{
+  const gchar *input;
+  const gchar *key;
+  const gchar *value;
+  gchar *text_separator;
+} TextSeparatorTestCase;
+
+ParameterizedTestParameters(xmlparser, text_separator)
+{
+  static TextSeparatorTestCase test_cases[] =
+  {
+    {"<root><tag1>foo</tag1><noise>bzz</noise><tag1>fighter</tag1></root>", ".xml.root.tag1", "foofighter", ""},
+    {"<root><tag1>foo</tag1><noise>bzz</noise><tag1>fighter</tag1></root>", ".xml.root.tag1", "foo\nfighter"},
+    {"<root><tag1>foo</tag1><noise>bzz</noise><tag1>fighter</tag1></root>", ".xml.root.tag1", "foo-fighter", "-"},
+    {"<root><tag1>foo</tag1><noise>bzz</noise><tag1>fighter</tag1></root>", ".xml.root.tag1", "foo---fighter", "---"},
+    {"<tag1>part1<tag2>value2</tag2>part2</tag1>", ".xml.tag1", "part1part2"},
+    {"<tag1>part1<tag2>value2</tag2>part2</tag1>", ".xml.tag1", "part1part2", ","},
+  };
+
+  return cr_make_param_array(TextSeparatorTestCase, test_cases, sizeof(test_cases) / sizeof(test_cases[0]));
+}
+
+ParameterizedTest(TextSeparatorTestCase *test_cases, xmlparser, text_separator)
+{
+
+  LogParser *xml_parser = _construct_xml_parser((XMLParserTestOptions)
+  {
+    .text_separator = test_cases->text_separator
+  });
+
+  LogMessage *msg = log_msg_new_empty();
+  log_msg_set_value(msg, LM_V_MESSAGE, test_cases->input, -1);
+
+  LogPathOptions path_options = LOG_PATH_OPTIONS_INIT;
+  log_parser_process_message(xml_parser, &msg, &path_options);
+
+  const gchar *value = log_msg_get_value_by_name(msg, test_cases->key, NULL);
+
+  cr_assert_str_eq(value, test_cases->value, "key: %s | value: %s != %s (expected)", test_cases->key, value,
+                   test_cases->value);
+
+  log_pipe_deinit((LogPipe *)xml_parser);
+  log_pipe_unref((LogPipe *)xml_parser);
+  log_msg_unref(msg);
+}
+
 
 Test(xml_parser, test_drop_invalid)
 {
