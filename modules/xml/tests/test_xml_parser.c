@@ -129,7 +129,7 @@ ParameterizedTestParameters(xmlparser, valid_inputs)
     {"<tag1><tag11></tag11><tag12><tag121>value</tag121></tag12></tag1>", ".xml.tag1.tag12.tag121", "value"},
     {"<tag1><tag11></tag11><tag12><tag121 attr1='1' attr2='2'>value</tag121></tag12></tag1>", ".xml.tag1.tag12.tag121._attr1", "1"},
     {"<tag1><tag11></tag11><tag12><tag121 attr1='1' attr2='2'>value</tag121></tag12></tag1>", ".xml.tag1.tag12.tag121._attr2", "2"},
-    {"<tag1><tag1>t11.1</tag1><tag1>t11.2</tag1></tag1>", ".xml.tag1.tag1", "t11.1t11.2"},
+    {"<tag1><tag1>t11.1</tag1><tag1>t11.2</tag1></tag1>", ".xml.tag1.tag1", "t11.1\nt11.2"},
   };
 
   return cr_make_param_array(ValidXMLTestCase, test_cases, sizeof(test_cases) / sizeof(test_cases[0]));
@@ -362,7 +362,7 @@ Test(xml_parser, test_strip_whitespaces)
 
   LogMessage *msg = log_msg_new_empty();
   log_msg_set_value(msg, LM_V_MESSAGE,
-                    "<tag> \n\t part1 <tag2/> part2 \n\n<tag>", -1);
+                    "<tag> \n\t part1 <tag2/> part2 \n\n</tag>", -1);
 
   const gchar *value;
   LogPathOptions path_options = LOG_PATH_OPTIONS_INIT;
