@@ -248,6 +248,11 @@ _xml_scanner_start_element(GMarkupParseContext  *context,
     scanner_push_attributes(self, attribute_names, attribute_values);
 }
 
+gboolean
+xml_scanner_should_push_text_method(XMLScanner *self)
+{
+  return (self->text->len) ? TRUE : FALSE;
+}
 
 void
 xml_scanner_end_element_method(XMLScanner *self,
@@ -270,7 +275,8 @@ _xml_scanner_end_element(GMarkupParseContext *context,
                          GError              **error)
 {
   XMLScanner *self = (XMLScanner *)user_data;
-  if (self->text->len)
+
+  if (self->should_push_text(self))
     xml_scanner_push_current_key_value(self, self->key->str, self->text->str, self->text->len);
 
   self->end_element_cb(self, element_name, error);
@@ -356,6 +362,7 @@ xml_scanner_init(XMLScanner *self, XMLScannerOptions *options, PushCurrentKeyVal
   self->start_element_cb = xml_scanner_start_element_method;
   self->end_element_cb = xml_scanner_end_element_method;
   self->text_cb = xml_scanner_text_method;
+  self->should_push_text = xml_scanner_should_push_text_method;
 
   self->options = options;
   self->push_key_value.push_function = push_function;
