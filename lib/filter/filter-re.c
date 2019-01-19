@@ -57,6 +57,11 @@ filter_re_eval(FilterExprNode *s, LogMessage **msgs, gint num_msg)
 
   payload = nv_table_ref(msg->payload);
   value = log_msg_get_value(msg, self->value_handle, &len);
+  msg_trace("BEFORE match() evaluation started",
+            evt_tag_str("input", value),
+            evt_tag_str("pattern", self->matcher->pattern),
+            evt_tag_str("value", log_msg_get_value_name(self->value_handle, NULL)),
+            evt_tag_printf("msg", "%p", msg));
   APPEND_ZERO(value, value, len);
 
   rc = filter_re_eval_string(s, msg, self->value_handle, value, len);

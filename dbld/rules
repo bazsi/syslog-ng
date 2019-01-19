@@ -63,6 +63,8 @@ bootstrap: bootstrap-$(DEFAULT_IMAGE)
 bootstrap-%: setup
 	$(DOCKER) run $(DOCKER_RUN_ARGS) --rm -e CONFIGURE_OPTS="$${CONFIGURE_OPTS:-$(CONFIGURE_OPTS)}" -i  balabit/syslog-ng-$* /source/dbld/bootstrap
 
+make: make-install
+
 make-%: setup
 	$(DOCKER) run $(DOCKER_RUN_ARGS) --rm -i  balabit/syslog-ng-$(DEFAULT_IMAGE) /source/dbld/make $(MAKE_ARGS) $*
 
