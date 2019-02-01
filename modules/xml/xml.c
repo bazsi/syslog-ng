@@ -22,6 +22,8 @@
 
 #include "xml.h"
 #include "scratch-buffers.h"
+#include "str-repr/encode.h"
+#include "str-repr/decode.h"
 
 
 XMLScannerOptions *
@@ -40,14 +42,34 @@ remove_trailing_dot(gchar *str)
 }
 
 static GString *
-append_values(const gchar *previous_value, gssize previous_value_len, const gchar *value, gssize value_length,
-              const GString *separator)
+append_values(const gchar *previous_value, gssize previous_value_len,
+              const gchar *current_value, gssize current_value_len, const GString *separator)
 {
   GString *result = scratch_buffers_alloc();
-  g_string_append_len(result, previous_value, previous_value_len);
+  GString *current_encoded = scratch_buffers_alloc();
+  GString *decoded = scratch_buffers_alloc();
+
+  gchar *end, *input = (gchar *)previous_value;
+  StrReprDecodeOptions options = {};
+  // FIXME it seems that str-repr lib has a limit for 3 chars long separator.. have to limit text-separator as well
+  memcpy(options.delimiter_chars, separator->str, MIN(3, separator->len));
+  do
+    {
+      str_repr_decode_with_options(decoded, input, (const gchar **)&end, &options);
+      if (end[0])
+        input = end;
+    }
+  while (end[0]);
+  // We have found the last element of the list
+  // Let's add the other (correctly quoted) elements to the result
+  g_string_append_len(result, previous_value, input - previous_value);
+  // make sure that the last element is encoded
+  str_repr_encode_append(result, decoded->str, decoded->len, separator->str);
   if (separator && separator->str[0])
     g_string_append_len(result, separator->str, separator->len);
-  g_string_append_len(result, value, value_length);
+  // don't forget to encode the current element (unfortunately, we cannot do that to the first element, since we only know we have a list if we found the second element)
+  str_repr_encode(current_encoded, current_value, current_value_len, separator->str);
+  g_string_append_len(result, current_encoded->str, current_encoded->len);
   return result;
 }
 
@@ -190,7 +212,7 @@ xml_parser_new(GlobalConfig *cfg)
   self->forward_invalid = TRUE;
 
   xml_parser_set_prefix(&self->super, ".xml");
-  xml_parser_set_text_separator(&self->super, "\n");
+  xml_parser_set_text_separator(&self->super, ",");
   xml_scanner_options_defaults(&self->options);
   return &self->super;
 }

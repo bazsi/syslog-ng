@@ -118,25 +118,8 @@ typedef struct
   const gchar *value;
 } ValidXMLTestCase;
 
-ParameterizedTestParameters(xmlparser, valid_inputs)
-{
-  static ValidXMLTestCase test_cases[] =
-  {
-    {"<tag1>value1</tag1>", ".xml.tag1", "value1"},
-    {"<tag1 attr='attr_value'>value1</tag1>", ".xml.tag1._attr", "attr_value"},
-    {"<tag1><tag2>value2</tag2></tag1>", ".xml.tag1.tag2", "value2"},
-    {"<tag1>part1<tag2>value2</tag2>part2</tag1>", ".xml.tag1", "part1part2"},
-    {"<tag1><tag11></tag11><tag12><tag121>value</tag121></tag12></tag1>", ".xml.tag1.tag12.tag121", "value"},
-    {"<tag1><tag11></tag11><tag12><tag121 attr1='1' attr2='2'>value</tag121></tag12></tag1>", ".xml.tag1.tag12.tag121._attr1", "1"},
-    {"<tag1><tag11></tag11><tag12><tag121 attr1='1' attr2='2'>value</tag121></tag12></tag1>", ".xml.tag1.tag12.tag121._attr2", "2"},
-    {"<tag1><tag1>t11.1</tag1><tag1>t11.2</tag1></tag1>", ".xml.tag1.tag1", "t11.1\nt11.2"},
-  };
-
-  return cr_make_param_array(ValidXMLTestCase, test_cases, sizeof(test_cases) / sizeof(test_cases[0]));
-}
-
-
-ParameterizedTest(ValidXMLTestCase *test_cases, xmlparser, valid_inputs)
+void
+_valid_xml_testing(ValidXMLTestCase *test_cases)
 {
   LogParser *xml_parser = _construct_xml_parser((XMLParserTestOptions) {});
 
@@ -156,6 +139,67 @@ ParameterizedTest(ValidXMLTestCase *test_cases, xmlparser, valid_inputs)
   log_msg_unref(msg);
 }
 
+ParameterizedTestParameters(xmlparser, valid_inputs)
+{
+  static ValidXMLTestCase test_cases[] =
+  {
+    {"<tag1>value1</tag1>", ".xml.tag1", "value1"},
+    {"<tag1 attr='attr_value'>value1</tag1>", ".xml.tag1._attr", "attr_value"},
+    {"<tag1><dontquote> value,2 </dontquote></tag1>", ".xml.tag1.dontquote", " value,2 "},
+    {"<tag1>part1<tag2>value2</tag2>part2</tag1>", ".xml.tag1", "part1part2"},
+    {"<tag1><tag11></tag11><tag12><tag121>value</tag121></tag12></tag1>", ".xml.tag1.tag12.tag121", "value"},
+    {"<tag1><tag11></tag11><tag12><tag121 attr1='1' attr2='2'>value</tag121></tag12></tag1>", ".xml.tag1.tag12.tag121._attr1", "1"},
+    {"<tag1><tag11></tag11><tag12><tag121 attr1='1' attr2='2'>value</tag121></tag12></tag1>", ".xml.tag1.tag12.tag121._attr2", "2"},
+    {"<tag1><tag1>t11.1</tag1><tag1>t11.2</tag1></tag1>", ".xml.tag1.tag1", "t11.1,t11.2"},
+  };
+
+  return cr_make_param_array(ValidXMLTestCase, test_cases, sizeof(test_cases) / sizeof(test_cases[0]));
+}
+
+ParameterizedTest(ValidXMLTestCase *test_cases, xmlparser, valid_inputs)
+{
+  _valid_xml_testing(test_cases);
+}
+
+ParameterizedTestParameters(xmlparser, quoting_array_elements)
+{
+  static ValidXMLTestCase test_cases[] =
+  {
+    {
+      "<tag1><dont_quote_simple_namevalue> value,2 </dont_quote_simple_namevalue></tag1>",
+      ".xml.tag1.dont_quote_simple_namevalue", " value,2 "
+    },
+    { "<events><data>1</data><data> 2 </data></events>", ".xml.events.data", "1,\" 2 \"" },
+    {
+      "<events><data>1</data><data> 2 </data><data>3,</data><data>4</data></events>",
+      ".xml.events.data", "1,\" 2 \",\"3,\",4"
+    },
+    {
+      "<noquotes><data>one</data><data>two</data><data>three</data></noquotes>",
+      ".xml.noquotes.data", "one,two,three"
+    },
+    {
+      "<array><data>,first element</data><data>second element</data><data>Third element</data></array>",
+      ".xml.array.data", "\",first element\",\"second element\",\"Third element\""
+    },
+    {
+      "<array><data>\"Quoted elements in arrays will be left quoted\"</data><data>forever and ever</data></array>",
+      ".xml.array.data", "\"Quoted elements in arrays will be left quoted\",\"forever and ever\""
+    },
+    {
+      "<array><data>\'Single quoted becomes quoted\'</data><data>simple</data></array>",
+      ".xml.array.data", "\"Single quoted becomes quoted\",simple"
+    },
+  };
+
+  return cr_make_param_array(ValidXMLTestCase, test_cases, sizeof(test_cases) / sizeof(test_cases[0]));
+}
+
+ParameterizedTest(ValidXMLTestCase *test_cases, xmlparser, quoting_array_elements)
+{
+  _valid_xml_testing(test_cases);
+}
+
 typedef struct
 {
   const gchar *input;
@@ -169,7 +213,7 @@ ParameterizedTestParameters(xmlparser, text_separator)
   static TextSeparatorTestCase test_cases[] =
   {
     {"<root><tag1>foo</tag1><noise>bzz</noise><tag1>fighter</tag1></root>", ".xml.root.tag1", "foofighter", ""},
-    {"<root><tag1>foo</tag1><noise>bzz</noise><tag1>fighter</tag1></root>", ".xml.root.tag1", "foo\nfighter"},
+    {"<root><tag1>foo</tag1><noise>bzz</noise><tag1>fighter</tag1></root>", ".xml.root.tag1", "foo,fighter"},
     {"<root><tag1>foo</tag1><noise>bzz</noise><tag1>fighter</tag1></root>", ".xml.root.tag1", "foo-fighter", "-"},
     {"<root><tag1>foo</tag1><noise>bzz</noise><tag1>fighter</tag1></root>", ".xml.root.tag1", "foo---fighter", "---"},
     {"<tag1>part1<tag2>value2</tag2>part2</tag1>", ".xml.tag1", "part1part2"},
