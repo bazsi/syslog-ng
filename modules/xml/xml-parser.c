@@ -35,7 +35,6 @@ static CfgLexerKeyword xml_keywords[] =
   { "drop_invalid", KW_DROP_INVALID },
   { "exclude_tags", KW_EXCLUDE_TAGS },
   { "strip_whitespaces", KW_STRIP_WHITESPACES },
-  { "text_separator", KW_TEXT_SEPARATOR },
   { NULL }
 };
 

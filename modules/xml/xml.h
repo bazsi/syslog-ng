@@ -30,7 +30,6 @@ typedef struct
 {
   LogParser super;
   gchar *prefix;
-  GString *text_separator;
   gboolean forward_invalid;
   XMLScannerOptions options;
 } XMLParser;
@@ -39,7 +38,6 @@ LogParser *xml_parser_new(GlobalConfig *cfg);
 LogPipe *xml_parser_clone(LogPipe *s);
 void xml_parser_set_prefix(LogParser *s, const gchar *prefix);
 void xml_parser_set_forward_invalid(LogParser *s, gboolean setting);
-void xml_parser_set_text_separator(LogParser *s, const gchar *separator);
 
 XMLScannerOptions *xml_parser_get_scanner_options(LogParser *p);
 #endif

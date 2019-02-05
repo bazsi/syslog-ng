@@ -24,7 +24,7 @@
 #include "scratch-buffers.h"
 #include "str-repr/encode.h"
 #include "str-repr/decode.h"
-
+#include "str-utils.h"
 
 XMLScannerOptions *
 xml_parser_get_scanner_options(LogParser *p)
@@ -43,40 +43,20 @@ remove_trailing_dot(gchar *str)
 
 static GString *
 append_values(const gchar *previous_value, gssize previous_value_len,
-              const gchar *current_value, gssize current_value_len, const GString *separator)
+              const gchar *current_value, gssize current_value_len)
 {
   GString *result = scratch_buffers_alloc();
-  GString *current_encoded = scratch_buffers_alloc();
-  GString *decoded = scratch_buffers_alloc();
 
-  gchar *end, *input = (gchar *)previous_value;
-  StrReprDecodeOptions options = {};
-  // FIXME it seems that str-repr lib has a limit for 3 chars long separator.. have to limit text-separator as well
-  memcpy(options.delimiter_chars, separator->str, MIN(3, separator->len));
-  do
-    {
-      str_repr_decode_with_options(decoded, input, (const gchar **)&end, &options);
-      if (end[0])
-        input = end;
-    }
-  while (end[0]);
-  // We have found the last element of the list
-  // Let's add the other (correctly quoted) elements to the result
-  g_string_append_len(result, previous_value, input - previous_value);
-  // make sure that the last element is encoded
-  str_repr_encode_append(result, decoded->str, decoded->len, separator->str);
-  if (separator && separator->str[0])
-    g_string_append_len(result, separator->str, separator->len);
-  // don't forget to encode the current element (unfortunately, we cannot do that to the first element, since we only know we have a list if we found the second element)
-  str_repr_encode(current_encoded, current_value, current_value_len, separator->str);
-  g_string_append_len(result, current_encoded->str, current_encoded->len);
+  g_string_assign_len(result, previous_value, previous_value_len);
+  if (previous_value_len > 0)
+    g_string_append_c(result, ',');
+  str_repr_encode_append(result, current_value, current_value_len, ",");
   return result;
 }
 
 typedef struct
 {
   LogMessage *msg;
-  GString *text_separator;
 } PushParams;
 
 static void
@@ -87,14 +67,10 @@ scanner_push_function(const gchar *name, const gchar *value, gssize value_length
 
   gssize current_value_len = 0;
   const gchar *current_value = log_msg_get_value_by_name(msg, name, &current_value_len);
-  if (current_value_len > 0)
-    {
-      GString *values_appended = append_values(current_value, current_value_len,
-                                               value, value_length, params->text_separator);
-      log_msg_set_value_by_name(msg, name, values_appended->str, values_appended->len);
-      return;
-    }
-  log_msg_set_value_by_name(msg, name, value, value_length);
+
+  GString *values_appended = append_values(current_value, current_value_len,
+                                               value, value_length);
+  log_msg_set_value_by_name(msg, name, values_appended->str, values_appended->len);
 }
 
 static gboolean
@@ -110,7 +86,7 @@ xml_parser_process(LogParser *s, LogMessage **pmsg,
             evt_tag_str ("prefix", self->prefix),
             evt_tag_printf("msg", "%p", *pmsg));
 
-  PushParams push_params = {.msg = msg, .text_separator = self->text_separator};
+  PushParams push_params = {.msg = msg };
   xml_scanner_init(&xml_scanner, &self->options, &scanner_push_function, &push_params, self->prefix);
 
   GError *error = NULL;
@@ -138,20 +114,6 @@ xml_parser_set_forward_invalid(LogParser *s, gboolean setting)
 }
 
 void
-xml_parser_set_text_separator(LogParser *s, const gchar *separator)
-{
-  XMLParser *self = (XMLParser *) s;
-
-  if (!self->text_separator)
-    self->text_separator = g_string_new(separator);
-  else
-    {
-      g_string_truncate(self->text_separator, 0);
-      g_string_append(self->text_separator, separator);
-    }
-}
-
-void
 xml_parser_set_prefix(LogParser *s, const gchar *prefix)
 {
   XMLParser *self = (XMLParser *) s;
@@ -171,7 +133,6 @@ xml_parser_clone(LogPipe *s)
   xml_parser_set_prefix(&cloned->super, self->prefix);
   log_parser_set_template(&cloned->super, log_template_ref(self->super.template));
   xml_parser_set_forward_invalid(&cloned->super, self->forward_invalid);
-  xml_parser_set_text_separator(&cloned->super, self->text_separator->str);
   xml_scanner_options_copy(&cloned->options, &self->options);
 
   return &cloned->super.super;
@@ -183,8 +144,6 @@ xml_parser_free(LogPipe *s)
   XMLParser *self = (XMLParser *) s;
   g_free(self->prefix);
   self->prefix = NULL;
-  g_string_free(self->text_separator, TRUE);
-  self->text_separator = NULL;
   xml_scanner_options_destroy(&self->options);
   log_parser_free_method(s);
 }
@@ -212,7 +171,6 @@ xml_parser_new(GlobalConfig *cfg)
   self->forward_invalid = TRUE;
 
   xml_parser_set_prefix(&self->super, ".xml");
-  xml_parser_set_text_separator(&self->super, ",");
   xml_scanner_options_defaults(&self->options);
   return &self->super;
 }

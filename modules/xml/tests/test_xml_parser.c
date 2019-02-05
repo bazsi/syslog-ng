@@ -46,7 +46,6 @@ typedef struct
 {
   gboolean forward_invalid;
   gboolean strip_whitespaces;
-  gchar *text_separator;
   GList *exclude_tags;
 } XMLParserTestOptions;
 
@@ -59,8 +58,6 @@ _construct_xml_parser(XMLParserTestOptions options)
     xml_scanner_options_set_strip_whitespaces(xml_parser_get_scanner_options(xml_parser), options.strip_whitespaces);
   if (options.exclude_tags)
     xml_scanner_options_set_and_compile_exclude_tags(xml_parser_get_scanner_options(xml_parser), options.exclude_tags);
-  if (options.text_separator)
-    xml_parser_set_text_separator(xml_parser, options.text_separator);
 
   LogPipe *cloned = xml_parser_clone(&xml_parser->super);
   log_pipe_init(cloned);
@@ -145,7 +142,7 @@ ParameterizedTestParameters(xmlparser, valid_inputs)
   {
     {"<tag1>value1</tag1>", ".xml.tag1", "value1"},
     {"<tag1 attr='attr_value'>value1</tag1>", ".xml.tag1._attr", "attr_value"},
-    {"<tag1><dontquote> value,2 </dontquote></tag1>", ".xml.tag1.dontquote", " value,2 "},
+    {"<tag1><dontquote> value,2 </dontquote></tag1>", ".xml.tag1.dontquote", "\" value,2 \""},
     {"<tag1>part1<tag2>value2</tag2>part2</tag1>", ".xml.tag1", "part1part2"},
     {"<tag1><tag11></tag11><tag12><tag121>value</tag121></tag12></tag1>", ".xml.tag1.tag12.tag121", "value"},
     {"<tag1><tag11></tag11><tag12><tag121 attr1='1' attr2='2'>value</tag121></tag12></tag1>", ".xml.tag1.tag12.tag121._attr1", "1"},
@@ -167,7 +164,7 @@ ParameterizedTestParameters(xmlparser, quoting_array_elements)
   {
     {
       "<tag1><dont_quote_simple_namevalue> value,2 </dont_quote_simple_namevalue></tag1>",
-      ".xml.tag1.dont_quote_simple_namevalue", " value,2 "
+      ".xml.tag1.dont_quote_simple_namevalue", "\" value,2 \""
     },
     { "<events><data>1</data><data> 2 </data></events>", ".xml.events.data", "1,\" 2 \"" },
     {
@@ -184,11 +181,11 @@ ParameterizedTestParameters(xmlparser, quoting_array_elements)
     },
     {
       "<array><data>\"Quoted elements in arrays will be left quoted\"</data><data>forever and ever</data></array>",
-      ".xml.array.data", "\"Quoted elements in arrays will be left quoted\",\"forever and ever\""
+      ".xml.array.data", "'\"Quoted elements in arrays will be left quoted\"',\"forever and ever\""
     },
     {
       "<array><data>\'Single quoted becomes quoted\'</data><data>simple</data></array>",
-      ".xml.array.data", "\"Single quoted becomes quoted\",simple"
+      ".xml.array.data", "\"'Single quoted becomes quoted'\",simple"
     },
   };
 
@@ -212,12 +209,8 @@ ParameterizedTestParameters(xmlparser, text_separator)
 {
   static TextSeparatorTestCase test_cases[] =
   {
-    {"<root><tag1>foo</tag1><noise>bzz</noise><tag1>fighter</tag1></root>", ".xml.root.tag1", "foofighter", ""},
     {"<root><tag1>foo</tag1><noise>bzz</noise><tag1>fighter</tag1></root>", ".xml.root.tag1", "foo,fighter"},
-    {"<root><tag1>foo</tag1><noise>bzz</noise><tag1>fighter</tag1></root>", ".xml.root.tag1", "foo-fighter", "-"},
-    {"<root><tag1>foo</tag1><noise>bzz</noise><tag1>fighter</tag1></root>", ".xml.root.tag1", "foo---fighter", "---"},
     {"<tag1>part1<tag2>value2</tag2>part2</tag1>", ".xml.tag1", "part1part2"},
-    {"<tag1>part1<tag2>value2</tag2>part2</tag1>", ".xml.tag1", "part1part2", ","},
   };
 
   return cr_make_param_array(TextSeparatorTestCase, test_cases, sizeof(test_cases) / sizeof(test_cases[0]));
@@ -228,7 +221,6 @@ ParameterizedTest(TextSeparatorTestCase *test_cases, xmlparser, text_separator)
 
   LogParser *xml_parser = _construct_xml_parser((XMLParserTestOptions)
   {
-    .text_separator = test_cases->text_separator
   });
 
   LogMessage *msg = log_msg_new_empty();
