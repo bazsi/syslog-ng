@@ -1,8 +1,6 @@
 FROM fedora:30
 LABEL maintainer="Andras Mitzki <andras.mitzki@balabit.com>, Laszlo Szemere <laszlo.szemere@balabit.com>, Balazs Scheidler <balazs.scheidler@oneidentity.com>"
-
-ARG OS_PLATFORM
-ENV OS_PLATFORM ${OS_PLATFORM}
+ENV OS_PLATFORM fedora-30
 
 COPY helpers/* /helpers/
 
