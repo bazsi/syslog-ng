@@ -1,6 +1,6 @@
 #!/bin/sh
 
-set +x
+set -x
 set +e
 
 echo $@
@@ -9,4 +9,6 @@ pwd
 ls -l
 ls -l dbld/images
 
-docker build --build-arg=COMMIT=$(git rev-parse --short HEAD) --build-arg=BRANCH=$SOURCE_BRANCH -t $IMAGE_NAME -f $FILE .
+OS_PLATFORM=$(basename $DOCKERFILE_PATH .dockerfile)
+
+docker build --build-arg=COMMIT=$(git rev-parse --short HEAD) --build-arg=OS_PLATFORM=${OS_PLATFORM} -t $IMAGE_NAME -f $DOCKERFILE_PATH .
