@@ -87,7 +87,8 @@ override_dh_auto_configure:
 		--enable-spoof-source \
 		--enable-tcp-wrapper \
 		--enable-sql \
-		--enable-mongodb \
+		--enable-mongodb=auto \
+		--enable-kafka=auto \
 		--enable-json \
 		--enable-riemann \
 		--enable-java \

@@ -27,6 +27,8 @@
 
 # kafka support needs librdkafka >= 1.0.0, which is only available on ubuntu-bionic
 debian			DH_OPTIONS=--no-package=syslog-ng-mod-kafka
+debian-jessie		DH_OPTIONS=--no-package=syslog-ng-mod-mongodb,syslog-ng-mod-kafka
+debian-buster		DH_OPTIONS=--no-package=syslog-ng-mod-java --no-package=syslog-ng-mod-kafka
 ubuntu			DH_OPTIONS=--no-package=syslog-ng-mod-kafka
 ubuntu-bionic
 
