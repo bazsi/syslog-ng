@@ -9,5 +9,4 @@ pwd
 ls -l
 ls -l dbld/images
 
-cd dbld/images/ && \
-	docker build --build-arg=COMMIT=$(git rev-parse --short HEAD) --build-arg=BRANCH=$SOURCE_BRANCH -t $IMAGE_NAME -f $FILE .
+docker build --build-arg=COMMIT=$(git rev-parse --short HEAD) --build-arg=BRANCH=$SOURCE_BRANCH -t $IMAGE_NAME -f $FILE .
