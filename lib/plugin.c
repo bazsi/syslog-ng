@@ -124,11 +124,17 @@ plugin_construct_from_config(Plugin *self, CfgLexer *lexer, gpointer arg)
  * Implementation of PluginContext
  *****************************************************************************/
 
+static gboolean
+_is_plugin_wildcard(const Plugin *p)
+{
+  return p->type == 0;
+}
+
 static Plugin *
 _find_plugin_in_list(GList *head, gint plugin_type, const gchar *plugin_name)
 {
   GList *p;
-  Plugin *plugin;
+  Plugin *plugin, *match = NULL;
   gint i;
 
   /* this function can only use the first two fields in plugin (type &
@@ -138,7 +144,8 @@ _find_plugin_in_list(GList *head, gint plugin_type, const gchar *plugin_name)
   for (p = head; p; p = g_list_next(p))
     {
       plugin = p->data;
-      if (plugin->type == plugin_type)
+
+      if (plugin->type == plugin_type || _is_plugin_wildcard(plugin))
         {
           for (i = 0; plugin->name[i] && plugin_name[i]; i++)
             {
@@ -150,10 +157,14 @@ _find_plugin_in_list(GList *head, gint plugin_type, const gchar *plugin_name)
                 }
             }
           if (plugin_name[i] == 0 && plugin->name[i] == 0)
-            return plugin;
+            {
+              match = plugin;
+              if (!_is_plugin_wildcard(plugin))
+                break;
+            }
         }
     }
-  return NULL;
+  return match;
 }
 
 static ModuleInfo *
