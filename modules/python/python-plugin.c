@@ -42,7 +42,6 @@
 #include <stdlib.h>
 
 extern CfgParser python_parser;
-extern CfgParser python_parser_parser;
 
 static Plugin python_plugins[] =
 {
