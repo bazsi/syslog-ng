@@ -1,0 +1,79 @@
+/*
+ * Copyright (c) 2019 Balazs Scheidler <bazsi77@gmail.com>
+ *
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License version 2 as published
+ * by the Free Software Foundation, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+ *
+ * As an additional exemption you are allowed to compile & link against the
+ * OpenSSL libraries as published by the OpenSSL project. See the file
+ * COPYING for details.
+ *
+ */
+
+%code requires {
+
+#include "confgen-parser.h"
+
+}
+
+%code {
+
+#include "cfg-grammar.h"
+#include "cfg-parser.h"
+#include "plugin.h"
+#include "syslog-names.h"
+}
+
+%name-prefix "confgen_"
+%lex-param {CfgLexer *lexer}
+%parse-param {CfgLexer *lexer}
+%parse-param {void **instance}
+%parse-param {gpointer arg}
+
+/* INCLUDE_DECLS */
+%token KW_CONFGEN
+%token KW_EXEC
+
+%type <ptr> confgen
+
+%%
+
+start
+        : LL_CONTEXT_ROOT
+        | LL_CONTEXT_DESTINATION
+        | LL_CONTEXT_SOURCE confgen			{ *instance = $2; }
+        | LL_CONTEXT_PARSER
+        | LL_CONTEXT_REWRITE
+        | LL_CONTEXT_FILTER
+        | LL_CONTEXT_LOG
+        | LL_CONTEXT_INNER_DEST
+        | LL_CONTEXT_INNER_SRC
+        | LL_CONTEXT_OPTIONS
+        ;
+
+confgen
+	: KW_CONFGEN '(' string ')'			{ $$ = confgen_exec_new(cfg_lexer_get_context_type(lexer), "confgen", $3); free($3); }
+	;
+
+confgen_opts
+	: confgen_opt confgen_opts
+	|
+	;
+
+confgen_opt
+	: KW_EXEC '(' string ')'
+	;
+
+/* INCLUDE_RULES */
+
+%%

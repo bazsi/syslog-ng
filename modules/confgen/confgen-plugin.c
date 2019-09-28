@@ -22,7 +22,19 @@
  */
 
 #include "confgen.h"
-#include "plugin.h"
+#include "plugin-types.h"
+#include "cfg-parser.h"
+
+extern CfgParser confgen_parser;
+
+static Plugin confgen_plugins[] =
+{
+  {
+    .type = LL_CONTEXT_SOURCE,
+    .name = "confgen",
+    .parser = &confgen_parser
+  },
+};
 
 gboolean
 confgen_module_init(PluginContext *plugin_context, CfgArgs *args)
@@ -32,8 +44,9 @@ confgen_module_init(PluginContext *plugin_context, CfgArgs *args)
 
   if (!args)
     {
-      msg_error("confgen: no arguments");
-      return FALSE;
+      msg_trace("confgen: no arguments, registering non-instantiated plugins");
+      plugin_register(plugin_context, confgen_plugins, G_N_ELEMENTS(confgen_plugins));
+      return TRUE;
     }
 
   name = cfg_args_get(args, "name");
