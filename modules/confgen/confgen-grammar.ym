@@ -28,10 +28,10 @@
 
 %code {
 
-#include "cfg-grammar.h"
-#include "cfg-parser.h"
-#include "plugin.h"
-#include "syslog-names.h"
+#include "confgen.h"
+
+#pragma GCC diagnostic ignored "-Wswitch-default"
+
 }
 
 %name-prefix "confgen_"
@@ -49,9 +49,13 @@
 %%
 
 start
+        : confgen_context confgen			{ *instance = $2; }
+        ;
+
+confgen_context
         : LL_CONTEXT_ROOT
         | LL_CONTEXT_DESTINATION
-        | LL_CONTEXT_SOURCE confgen			{ *instance = $2; }
+        | LL_CONTEXT_SOURCE
         | LL_CONTEXT_PARSER
         | LL_CONTEXT_REWRITE
         | LL_CONTEXT_FILTER

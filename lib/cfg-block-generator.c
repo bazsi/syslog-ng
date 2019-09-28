@@ -67,14 +67,15 @@ cfg_block_generator_free_instance(CfgBlockGenerator *self)
 CfgBlockGenerator *
 cfg_block_generator_ref(CfgBlockGenerator *self)
 {
-  self->ref_cnt++;
+  if (self)
+    self->ref_cnt++;
   return self;
 }
 
 void
 cfg_block_generator_unref(CfgBlockGenerator *self)
 {
-  if (--self->ref_cnt == 0)
+  if (self && --self->ref_cnt == 0)
     {
       if (self->free_fn)
         self->free_fn(self);

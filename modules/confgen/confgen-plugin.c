@@ -30,7 +30,7 @@ extern CfgParser confgen_parser;
 static Plugin confgen_plugins[] =
 {
   {
-    .type = LL_CONTEXT_SOURCE,
+    .type = LL_CONTEXT_SOURCE | LL_CONTEXT_FLAG_GENERATOR,
     .name = "confgen",
     .parser = &confgen_parser
   },
@@ -85,6 +85,6 @@ const ModuleInfo module_info =
   .version = SYSLOG_NG_VERSION,
   .description = "The confgen module provides support for dynamically generated configuration file snippets for syslog-ng, used for the SCL system() driver for example",
   .core_revision = SYSLOG_NG_SOURCE_REVISION,
-  .plugins = NULL,
-  .plugins_len = 0,
+  .plugins = confgen_plugins,
+  .plugins_len = G_N_ELEMENTS(confgen_plugins),
 };
