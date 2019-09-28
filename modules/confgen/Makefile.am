@@ -1,6 +1,7 @@
 module_LTLIBRARIES				+= modules/confgen/libconfgen.la
 modules_confgen_libconfgen_la_SOURCES		=	\
 	modules/confgen/confgen.h			\
+	modules/confgen/confgen.c			\
 	modules/confgen/confgen-plugin.c
 modules_confgen_libconfgen_la_CPPFLAGS		=	\
 	$(AM_CPPFLAGS)

@@ -24,6 +24,8 @@
 #ifndef CONFGEN_H_INCLUDED
 #define CONFGEN_H_INCLUDED
 
-#include "syslog-ng.h"
+#include "cfg-block-generator.h"
+
+CfgBlockGenerator *confgen_exec_new(gint context, const gchar *name, const gchar *exec);
 
 #endif
