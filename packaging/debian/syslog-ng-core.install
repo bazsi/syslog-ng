@@ -5,8 +5,8 @@ usr/bin/*
 usr/sbin/*
 usr/lib/syslog-ng/libsyslog-ng-*.so.*
 usr/lib/syslog-ng/libevtlog-*.so.*
-usr/lib/syslog-ng/libsecret-storage.so.*
-usr/lib/syslog-ng/*/libsdjournal.so
+usr/lib/syslog-ng/libsecret-storage.so*
+usr/lib/syslog-ng/*/libhttp.so
 usr/lib/syslog-ng/*/libaffile.so
 usr/lib/syslog-ng/*/libafprog.so
 usr/lib/syslog-ng/*/libafsocket.so
@@ -16,9 +16,9 @@ usr/lib/syslog-ng/*/libconfgen.so
 usr/lib/syslog-ng/*/libcryptofuncs.so
 usr/lib/syslog-ng/*/libcsvparser.so
 usr/lib/syslog-ng/*/libdbparser.so
+usr/lib/syslog-ng/*/libjson-plugin.so
 usr/lib/syslog-ng/*/libhook-commands.so
 usr/lib/syslog-ng/*/libkvformat.so
-usr/lib/syslog-ng/*/libtags-parser.so
 usr/lib/syslog-ng/*/liblinux-kmsg-format.so
 usr/lib/syslog-ng/*/libpseudofile.so
 usr/lib/syslog-ng/*/libsyslogformat.so
@@ -26,44 +26,36 @@ usr/lib/syslog-ng/*/libsystem-source.so
 usr/lib/syslog-ng/*/libtimestamp.so
 usr/lib/syslog-ng/*/libcef.so
 usr/lib/syslog-ng/*/libdisk-buffer.so
-usr/lib/syslog-ng/*/libxml.so
 usr/lib/syslog-ng/*/libappmodel.so
-usr/lib/syslog-ng/*/libjson-plugin.so
+usr/lib/syslog-ng/*/loggen/libloggen_socket_plugin*.so 
+usr/lib/syslog-ng/*/loggen/libloggen_ssl_plugin*.so
+usr/lib/syslog-ng/libloggen_helper.so
+usr/lib/syslog-ng/libloggen_plugin.so
 usr/lib/syslog-ng/libloggen_helper-*.so.*
 usr/lib/syslog-ng/libloggen_plugin-*.so.*
-usr/lib/syslog-ng/*/loggen/libloggen_socket_plugin*.so*
-usr/lib/syslog-ng/*/loggen/libloggen_ssl_plugin*.so*
 usr/share/syslog-ng/include/scl/system/*
 usr/share/syslog-ng/include/scl/syslogconf/*
 usr/share/syslog-ng/include/scl/rewrite/*
 usr/share/syslog-ng/include/scl/mbox/*
+usr/share/syslog-ng/include/scl/nodejs/*
 usr/share/syslog-ng/include/scl/apache/*
+usr/share/syslog-ng/include/scl/cim/*
 usr/share/syslog-ng/include/scl/loggly/*
 usr/share/syslog-ng/include/scl/logmatic/*
 usr/share/syslog-ng/include/scl/solaris/*
 usr/share/syslog-ng/include/scl/cisco/*
-usr/share/syslog-ng/include/scl/collectd/*
-usr/share/syslog-ng/include/scl/windowseventlog/*
-usr/share/syslog-ng/include/scl/loadbalancer/*
 usr/share/syslog-ng/include/scl/iptables/*
-usr/share/syslog-ng/include/scl/default-network-drivers/*
 usr/share/syslog-ng/include/scl/sudo/*
-usr/share/syslog-ng/include/scl/nodejs/*
-usr/share/syslog-ng/include/scl/osquery/*
-usr/share/syslog-ng/include/scl/ewmm/*
-usr/share/syslog-ng/include/scl/graylog2/*
 usr/share/syslog-ng/include/scl/linux-audit/*
-usr/share/syslog-ng/include/scl/websense/*
-usr/share/syslog-ng/include/scl/netskope/*
-usr/share/syslog-ng/include/scl/junos/*
-usr/share/syslog-ng/include/scl/checkpoint/*
+usr/share/syslog-ng/include/scl/slack/*
+usr/share/syslog-ng/include/scl/telegram/*
 usr/share/syslog-ng/xsd/*
-
-#Templates with json dependencies
-usr/share/syslog-ng/include/scl/cim/*
+[linux-any] usr/lib/syslog-ng/*/libsdjournal.so
+#[!kfreebsd-any] lib/systemd/system/*
 [!kfreebsd-any] debian/syslog-ng.systemd =>  lib/systemd/system/syslog-ng.service
 
 debian/syslog-ng.conf                   /etc/syslog-ng/
+debian/scl.conf                         /etc/syslog-ng/
 
 [kfreebsd-any] debian/tty10.kfreebsd.conf => /usr/share/syslog-ng/include/scl/system/tty10.conf
 [!kfreebsd-any] debian/tty10.linux.conf   => /usr/share/syslog-ng/include/scl/system/tty10.conf

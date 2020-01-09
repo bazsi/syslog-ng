@@ -1,0 +1,12 @@
+*~
+/autoreconf.*
+/build-tree/
+/files
+/*debhelper*
+/*substvars
+/tmp/
+/syslog-ng-core/
+/syslog-ng-dbg/
+/syslog-ng/
+/syslog-ng-mod-*/
+/syslog-ng-dev/
