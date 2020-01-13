@@ -7,6 +7,7 @@ BUILDER_IMAGES=		\
 	debian-jessie 	\
 	debian-stretch	\
 	debian-buster	\
+	debian-sid	\
 	ubuntu-xenial	\
 	ubuntu-trusty	\
 	ubuntu-cosmic	\
@@ -40,6 +41,7 @@ RELEASE_DIR=$(DBLD_DIR)/release
 TARBALL=$(BUILD_DIR)/syslog-ng-$(VERSION).tar.gz
 MODE=snapshot
 CONFIGURE_OPTS=--enable-debug --enable-manpages --with-python=2 --prefix=/install $(CONFIGURE_ADD)
+
 
 DOCKER_SHELL=$(DOCKER) run $(DOCKER_RUN_ARGS) --rm -ti balabit/syslog-ng-$* /source/dbld/shell
 
@@ -141,6 +143,7 @@ shell-%: setup
 images: $(foreach image,$(IMAGES), image-$(image))
 image: image-$(DEFAULT_IMAGE)
 image-%:
+	[ -f $(DBLD_DIR)/images/$*.prepare.sh ] && $(SHELL) -x $(DBLD_DIR)/images/$*.prepare.sh
 	cd $(DBLD_DIR)/images/ && $(DOCKER) build --build-arg=OS_PLATFORM=$* --build-arg=COMMIT=$$(git rev-parse --short HEAD) --network=host -t balabit/syslog-ng-$* -f $*.dockerfile .
 
 pull-images: $(foreach image,$(BUILDER_IMAGES), pull-image-$(image))
