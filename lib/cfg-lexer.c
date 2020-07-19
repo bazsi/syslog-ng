@@ -188,6 +188,14 @@ cfg_lexer_lookup_keyword(CfgLexer *self, YYSTYPE *yylval, YYLTYPE *yylloc, const
       CfgLexerContext *context = ((CfgLexerContext *) l->data);
       CfgLexerKeyword *keywords = context->keywords;
 
+      Plugin *p = cfg_find_plugin(self->cfg, context->type, token);
+      if (p)
+        {
+          yylval->type = LL_PLUGIN;
+          yylval->ptr = p;
+          return LL_PLUGIN;
+        }
+
       if (keywords)
         {
           int i, j;

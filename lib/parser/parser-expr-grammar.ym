@@ -63,16 +63,9 @@ parser_expr_list
 
 
 parser_expr
-        : LL_IDENTIFIER
+        : LL_PLUGIN
           {
-            Plugin *p;
-            gint context = LL_CONTEXT_PARSER;
-
-            p = cfg_find_plugin(configuration, context, $1);
-            CHECK_ERROR(p, @1, "%s plugin %s not found", cfg_lexer_lookup_context_name_by_type(context), $1);
-
-            last_parser = (LogParser *) cfg_parse_plugin(configuration, p, &@1, NULL);
-            free($1);
+            last_parser = (LogParser *) cfg_parse_plugin(configuration, $1, &@1, NULL);
             if (!last_parser)
               {
                 YYERROR;

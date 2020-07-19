@@ -334,6 +334,7 @@ extern struct _LogRewrite *last_rewrite;
 %token <cptr> LL_STRING               10433
 %token <token> LL_TOKEN               10434
 %token <cptr> LL_BLOCK                10435
+%token <ptr> LL_PLUGIN                10436
 
 %destructor { free($$); } <cptr>
 
@@ -579,17 +580,11 @@ log_stmt
 
 
 plugin_stmt
-        : LL_IDENTIFIER
+        : LL_PLUGIN
           {
-            Plugin *p;
-            gint context = LL_CONTEXT_ROOT;
             gpointer result;
 
-            p = cfg_find_plugin(configuration, context, $1);
-            CHECK_ERROR(p, @1, "%s plugin %s not found", cfg_lexer_lookup_context_name_by_type(context), $1);
-
-            result = cfg_parse_plugin(configuration, p, &@1, NULL);
-            free($1);
+            result = cfg_parse_plugin(configuration, $1, &@1, NULL);
             if (!result)
               YYERROR;
             $$ = NULL;
@@ -619,16 +614,9 @@ source_item
 	;
 
 source_plugin
-        : LL_IDENTIFIER
+        : LL_PLUGIN
           {
-            Plugin *p;
-            gint context = LL_CONTEXT_SOURCE;
-
-            p = cfg_find_plugin(configuration, context, $1);
-            CHECK_ERROR(p, @1, "%s plugin %s not found", cfg_lexer_lookup_context_name_by_type(context), $1);
-
-            last_driver = (LogDriver *) cfg_parse_plugin(configuration, p, &@1, NULL);
-            free($1);
+            last_driver = (LogDriver *) cfg_parse_plugin(configuration, $1, &@1, NULL);
             if (!last_driver)
               {
                 YYERROR;
@@ -711,16 +699,9 @@ dest_item
 	;
 
 dest_plugin
-        : LL_IDENTIFIER
+        : LL_PLUGIN
           {
-            Plugin *p;
-            gint context = LL_CONTEXT_DESTINATION;
-
-            p = cfg_find_plugin(configuration, context, $1);
-            CHECK_ERROR(p, @1, "%s plugin %s not found", cfg_lexer_lookup_context_name_by_type(context), $1);
-
-            last_driver = (LogDriver *) cfg_parse_plugin(configuration, p, &@1, NULL);
-            free($1);
+            last_driver = (LogDriver *) cfg_parse_plugin(configuration, $1, &@1, NULL);
             if (!last_driver)
               {
                 YYERROR;
@@ -1015,16 +996,9 @@ options_item
 	| { last_stats_options = &configuration->stats_options; } stat_option
 	| { last_dns_cache_options = &configuration->dns_cache_options; } dns_cache_option
 	| { last_file_perm_options = &configuration->file_perm_options; } file_perm_option
-	| LL_IDENTIFIER
+	| LL_PLUGIN
           {
-            Plugin *p;
-            gint context = LL_CONTEXT_OPTIONS;
-
-            p = cfg_find_plugin(configuration, context, $1);
-            CHECK_ERROR(p, @1, "%s plugin %s not found", cfg_lexer_lookup_context_name_by_type(context), $1);
-
-            cfg_parse_plugin(configuration, p, &@1, NULL);
-            free($1);
+            cfg_parse_plugin(configuration, $1, &@1, NULL);
           }
 	;
 

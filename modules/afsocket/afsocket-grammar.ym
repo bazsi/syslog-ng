@@ -451,22 +451,21 @@ source_afnetwork_option
 
 source_afsocket_transport
 	: afsocket_transport
-        | KW_TRANSPORT '(' string
-          {
-            Plugin *p;
-            gint context = LL_CONTEXT_SERVER_PROTO;
+        | KW_TRANSPORT '('
+          { cfg_lexer_push_context(lexer, LL_CONTEXT_SERVER_PROTO, NULL, "transport reference"); }
+          LL_PLUGIN
+          { cfg_lexer_pop_context(lexer); }
 
-            p = cfg_find_plugin(configuration, context, $3);
-            if (p)
+          {
+            Plugin *p = (Plugin *) $4;
+
+            /* for transports with grammar */
+            if (p->parser)
               {
-                /* for transports with grammar */
-                if (p->parser)
-                  {
-                    LogProtoServerFactory *sf = cfg_parse_plugin(configuration, p, &@3, last_proto_server_options);
-                    ((AFSocketSourceDriver *) last_driver)->proto_factory = sf;
-                  }
+                LogProtoServerFactory *sf = cfg_parse_plugin(configuration, p, &@3, last_proto_server_options);
+                ((AFSocketSourceDriver *) last_driver)->proto_factory = sf;
               }
-            transport_mapper_set_transport(last_transport_mapper, $3);
+            transport_mapper_set_transport(last_transport_mapper, p->name);
           }
         ')'	{ free($3); }
 	| KW_TLS
@@ -723,22 +722,19 @@ dest_afnetwork_option
 
 dest_afsocket_transport
 	: afsocket_transport
-        | KW_TRANSPORT '(' string
+        | KW_TRANSPORT '('
+          { cfg_lexer_push_context(lexer, LL_CONTEXT_CLIENT_PROTO, NULL, "transport reference"); }
+          LL_PLUGIN
+          { cfg_lexer_pop_context(lexer); }
           {
-            Plugin *p;
-            gint context = LL_CONTEXT_CLIENT_PROTO;
-
-            p = cfg_find_plugin(configuration, context, $3);
-            if (p)
+            Plugin *p = (Plugin *) $4;
+            /* for transports with grammar */
+            if (p->parser)
               {
-                /* for transports with grammar */
-                if (p->parser)
-                  {
-                    LogProtoClientFactory *cf = cfg_parse_plugin(configuration, p, &@3, last_proto_client_options);
-                    ((AFSocketDestDriver *) last_driver)->proto_factory = cf;
-                  }
+                LogProtoClientFactory *cf = cfg_parse_plugin(configuration, p, &@3, last_proto_client_options);
+                ((AFSocketDestDriver *) last_driver)->proto_factory = cf;
               }
-            transport_mapper_set_transport(last_transport_mapper, $3);
+            transport_mapper_set_transport(last_transport_mapper, p->name);
           }
         ')'	{ free($3); }
 	| KW_SPOOF_SOURCE '(' yesno ')'		         { afinet_dd_set_spoof_source(last_driver, $3); }
