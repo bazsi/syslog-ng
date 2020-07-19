@@ -462,12 +462,12 @@ source_afsocket_transport
             /* for transports with grammar */
             if (p->parser)
               {
-                LogProtoServerFactory *sf = cfg_parse_plugin(configuration, p, &@3, last_proto_server_options);
+                LogProtoServerFactory *sf = cfg_parse_plugin(configuration, p, &@4, last_proto_server_options);
                 ((AFSocketSourceDriver *) last_driver)->proto_factory = sf;
               }
             transport_mapper_set_transport(last_transport_mapper, p->name);
           }
-        ')'	{ free($3); }
+        ')'
 	| KW_TLS
 	  {
             gchar buf[256];
@@ -731,12 +731,12 @@ dest_afsocket_transport
             /* for transports with grammar */
             if (p->parser)
               {
-                LogProtoClientFactory *cf = cfg_parse_plugin(configuration, p, &@3, last_proto_client_options);
+                LogProtoClientFactory *cf = cfg_parse_plugin(configuration, p, &@4, last_proto_client_options);
                 ((AFSocketDestDriver *) last_driver)->proto_factory = cf;
               }
             transport_mapper_set_transport(last_transport_mapper, p->name);
           }
-        ')'	{ free($3); }
+        ')'
 	| KW_SPOOF_SOURCE '(' yesno ')'		         { afinet_dd_set_spoof_source(last_driver, $3); }
 	| KW_TLS
 	  {

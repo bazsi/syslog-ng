@@ -177,6 +177,54 @@ cfg_lexer_format_location_tag(CfgLexer *self, YYLTYPE *yylloc)
   return evt_tag_str("location", cfg_lexer_format_location(self, yylloc, buf, sizeof(buf)));
 }
 
+static int
+__cfg_lexer_lookup_keyword(CfgLexer *self, CfgLexerKeyword *keywords, YYSTYPE *yylval, YYLTYPE *yylloc, const gchar *token)
+{
+  if (keywords)
+    {
+      int i, j;
+
+      for (i = 0; keywords[i].kw_name; i++)
+        {
+          if (strcmp(keywords[i].kw_name, CFG_KEYWORD_STOP) == 0)
+            {
+              return -1;
+            }
+
+          for (j = 0; token[j] && keywords[i].kw_name[j]; j++)
+            {
+              if (token[j] == '-' || token[j] == '_')
+                {
+                  if (keywords[i].kw_name[j] != '_')
+                    break;
+                }
+              else if (token[j] != keywords[i].kw_name[j])
+                break;
+            }
+          if (token[j] == 0 && keywords[i].kw_name[j] == 0)
+            {
+              /* match */
+              switch (keywords[i].kw_status)
+                {
+                case KWS_OBSOLETE:
+                  msg_warning("WARNING: Your configuration file uses an obsoleted keyword, please update your configuration",
+                              evt_tag_str("keyword", keywords[i].kw_name),
+                              evt_tag_str("change", keywords[i].kw_explain),
+                              cfg_lexer_format_location_tag(self, yylloc));
+                  break;
+                default:
+                  break;
+                }
+              keywords[i].kw_status = KWS_NORMAL;
+              yylval->type = LL_TOKEN;
+              yylval->token = keywords[i].kw_token;
+              return keywords[i].kw_token;
+            }
+        }
+    }
+  return 0;
+}
+
 int
 cfg_lexer_lookup_keyword(CfgLexer *self, YYSTYPE *yylval, YYLTYPE *yylloc, const char *token)
 {
@@ -188,6 +236,18 @@ cfg_lexer_lookup_keyword(CfgLexer *self, YYSTYPE *yylval, YYLTYPE *yylloc, const
       CfgLexerContext *context = ((CfgLexerContext *) l->data);
       CfgLexerKeyword *keywords = context->keywords;
 
+      gint res = __cfg_lexer_lookup_keyword(self, keywords, yylval, yylloc, token);
+      if (res > 0)
+        {
+          return res;
+        }
+      else if (res < 0)
+        {
+          yylval->type = LL_IDENTIFIER;
+          yylval->cptr = strdup(token);
+          return yylval->type;
+        }
+
       Plugin *p = cfg_find_plugin(self->cfg, context->type, token);
       if (p)
         {
@@ -196,50 +256,6 @@ cfg_lexer_lookup_keyword(CfgLexer *self, YYSTYPE *yylval, YYLTYPE *yylloc, const
           return LL_PLUGIN;
         }
 
-      if (keywords)
-        {
-          int i, j;
-
-          for (i = 0; keywords[i].kw_name; i++)
-            {
-              if (strcmp(keywords[i].kw_name, CFG_KEYWORD_STOP) == 0)
-                {
-                  yylval->type = LL_IDENTIFIER;
-                  yylval->cptr = strdup(token);
-                  return LL_IDENTIFIER;
-                }
-
-              for (j = 0; token[j] && keywords[i].kw_name[j]; j++)
-                {
-                  if (token[j] == '-' || token[j] == '_')
-                    {
-                      if (keywords[i].kw_name[j] != '_')
-                        break;
-                    }
-                  else if (token[j] != keywords[i].kw_name[j])
-                    break;
-                }
-              if (token[j] == 0 && keywords[i].kw_name[j] == 0)
-                {
-                  /* match */
-                  switch (keywords[i].kw_status)
-                    {
-                    case KWS_OBSOLETE:
-                      msg_warning("WARNING: Your configuration file uses an obsoleted keyword, please update your configuration",
-                                  evt_tag_str("keyword", keywords[i].kw_name),
-                                  evt_tag_str("change", keywords[i].kw_explain),
-                                  cfg_lexer_format_location_tag(self, yylloc));
-                      break;
-                    default:
-                      break;
-                    }
-                  keywords[i].kw_status = KWS_NORMAL;
-                  yylval->type = LL_TOKEN;
-                  yylval->token = keywords[i].kw_token;
-                  return keywords[i].kw_token;
-                }
-            }
-        }
       l = l->next;
     }
   yylval->type = LL_IDENTIFIER;
