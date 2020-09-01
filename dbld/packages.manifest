@@ -158,6 +158,7 @@ python3-numpy                   [kira]
 python-yaml                     [kira]
 python3-yaml                    [kira]
 systemd-sysv                    [kira]
+python-is-python2               [kira]
 
 
 #############################################################################
